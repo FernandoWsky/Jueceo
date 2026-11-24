@@ -147,7 +147,7 @@ function publico(){
       const p=D.p.find(x=>x.id===sel);
       h='<tr><th>#</th><th>Atleta</th><th>Reps</th><th>Tiempo</th><th>Nulas</th><th>Puntaje</th></tr>'+(p?rank(rs.filter(r=>r.pruebaId===sel)).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nombre)}</td><td>${r.reps}</td><td>${r.done?fmtD(r.tiempo)+(r.completo?'':' (cap)'):'En curso'}</td><td>${r.nulas}</td><td>${sc(r,p)}</td></tr>`).join(''):'');
     }
-`<table>${h}</table>`;
+    $('#t').innerHTML=`<table>${h}</table>`;
   }
 }
 
