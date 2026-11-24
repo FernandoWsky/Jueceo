@@ -44,7 +44,51 @@ body.off #net{display:block}
 .kp .big{grid-column:1/-1;background:var(--ink);color:#fff}
 .kp .big b{font-size:44px}
 .kp .big span{color:#b9c4cd}
+/* Solo pantalla del juez (#j): oscuro + dorado, según las fotos de referencia */
+#j{--bg:#0b0d12;--card:#171a23;--card2:#1f2330;--line:rgba(255,255,255,.09);--gold:#f2b705;--gold2:#ffd84d;--ink:#f6f2e7;--mut:#9aa1b1;--red:#e5484d;background:var(--bg);color:var(--ink);border-radius:24px;padding:20px 16px;margin:16px auto;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+#j h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:10px 0}
+#j input,#j select{padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:#0e1118;color:var(--ink);box-shadow:inset 0 2px 8px rgba(0,0,0,.55)}
+#j input::placeholder{color:#6b7280}
+#j select option{background:#171a23}
+#j button{padding:14px;border:0;border-radius:999px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#191204;font-weight:800;box-shadow:0 8px 20px rgba(242,183,5,.25)}
+#j button:active{transform:translateY(1px);box-shadow:0 4px 12px rgba(242,183,5,.2)}
+#j button.sec{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#j :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#j .meta{color:var(--mut)}
+#j .meta span:first-child{color:var(--ink);font-weight:700}
+#j .count{align-items:flex-end;margin-top:4px}
+#j .count .tm{font-size:56px;line-height:1}
+#j .count .tot{color:var(--ink);font-size:22px;font-weight:700}
+#j .tm{font-size:44px;font-weight:800;color:var(--gold)}
+#j .tap{min-height:44vh;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#191204;font-size:min(38vw,220px);border-radius:28px;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 12px 32px rgba(242,183,5,.35),inset 0 2px 0 rgba(255,255,255,.5)}
+#j .tap small{font-size:20px;font-weight:700;color:#5c4510}
+#j .tap:active{transform:translateY(3px);box-shadow:0 6px 16px rgba(242,183,5,.3)}
+#j .ej{font-size:30px;font-weight:800;margin-top:12px;color:var(--ink)}
+#j .nula{background:linear-gradient(180deg,#f0565b,#d92b31);color:#fff;box-shadow:0 8px 20px rgba(229,72,77,.3)}
+#j .sum{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:24px;padding:20px 16px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
+#j .sum h3{margin:10px 0 0;font-size:26px}
+#j .sum .sub{color:var(--mut);margin:2px 0 16px}
+#j .badge{padding:4px 12px;border-radius:999px;font-weight:800;color:#191204;background:var(--gold)}
+#j .badge.cap{background:var(--red);color:#fff}
+#j .ring-wrap{display:flex;justify-content:center;margin:10px 0 4px}
+#j .ring{width:190px;height:190px}
+#j .ring-bg{fill:none;stroke:rgba(255,255,255,.1);stroke-width:11}
+#j .ring-fg{fill:none;stroke:var(--gold);stroke-width:11;stroke-linecap:round;transform:rotate(-90deg);transform-origin:center;filter:drop-shadow(0 0 8px rgba(242,183,5,.45))}
+#j .ring-num{fill:var(--ink);font-size:44px;font-weight:800;text-anchor:middle}
+#j .ring-lbl{fill:var(--mut);font-size:13px;text-anchor:middle}
+#j .kp{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0}
+#j .kp div{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+#j .kp b{display:block;font-size:30px;color:var(--gold)}
+#j .kp span{color:var(--mut)}
+#j .bars{margin:16px 0 4px}
+#j .bar-row{margin:14px 0}
+#j .bar-head{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin-bottom:6px}
+#j .bar-head b{font-weight:700}
+#j .bar-head span{color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+#j .bar{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+#j .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
 @media print{header,button,#net{display:none}}
+@media print{#j{background:#fff!important;color:#000!important;box-shadow:none}#j .sum,#j .kp div{background:#fff!important;color:#000!important;border-color:#ccc!important}#j .kp b{color:#000}#j .ring-num{fill:#000}#j .ring-fg{stroke:#b98a0a}}
 .err{color:var(--red)}
 </style></head>
 <body>
@@ -191,18 +235,20 @@ function juez(){
   const q=(s,f)=>{const x=$(s);if(x)x.onclick=f;};
   const resumen=()=>{
     let acc=0,prev=0;
-    const filas=S.p.rutina.map((e,i)=>{const hecho=Math.max(0,Math.min(e.reps,S.reps-acc));acc+=e.reps;const t=S.splits[i];const dt=t!=null?fmtD(t-prev):'—';if(t!=null)prev=t;return `<tr><td>${esc(e.nombre)}</td><td>${hecho}/${e.reps}</td><td>${dt}</td></tr>`;}).join('');
+    const barras=S.p.rutina.map((e,i)=>{const hecho=Math.max(0,Math.min(e.reps,S.reps-acc));acc+=e.reps;const t=S.splits[i];const dt=t!=null?fmtD(t-prev):'—';if(t!=null)prev=t;const pct=Math.round(hecho/e.reps*100);return `<div class="bar-row"><div class="bar-head"><b>${esc(e.nombre)}</b><span>${hecho}/${e.reps} · ${dt}</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`;}).join('');
     const sc=Math.round(S.reps/tot()*1000)/10,ok=S.completo;
+    const C=364.4,off=(C*(1-sc/100)).toFixed(1);
     return `<div class="sum"><span class="badge${ok?'':' cap'}">${ok?'Rutina completa':'Time cap'}</span><h3>${esc(S.a.nombre)}</h3><p class="sub">${esc(S.a.cat||'Sin categoría')} · ${esc(S.p.nombre)}<br>Juez: ${esc(S.juez||'—')}${S.fin?' · '+new Date(S.fin).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}):''}</p>
-    <div class="kp"><div class="big"><b>${sc}</b><span>puntaje de 100</span></div><div><b>${S.reps}/${tot()}</b><span>repeticiones</span></div><div><b>${S.nulas}</b><span>nulas</span></div><div><b>${fmtD(S.tiempo)}</b><span>tiempo total</span></div><div><b>${Math.min(S.p.rutina.length,S.splits.length)}/${S.p.rutina.length}</b><span>ejercicios</span></div></div>
-    <table><tr><th>Ejercicio</th><th>Reps</th><th>Tiempo</th></tr>${filas}</table></div><div class="row"><button id="imp" class="sec">Imprimir / PDF</button><button id="otro">Otro atleta</button></div>`;
+    <div class="ring-wrap"><svg class="ring" viewBox="0 0 140 140"><circle class="ring-bg" cx="70" cy="70" r="58"/><circle class="ring-fg" cx="70" cy="70" r="58" stroke-dasharray="${C}" stroke-dashoffset="${off}"/><text class="ring-num" x="70" y="80">${sc}</text><text class="ring-lbl" x="70" y="102">de 100</text></svg></div>
+    <div class="kp"><div><b>${S.reps}/${tot()}</b><span>repeticiones</span></div><div><b>${S.nulas}</b><span>nulas</span></div><div><b>${fmtD(S.tiempo)}</b><span>tiempo total</span></div><div><b>${Math.min(S.p.rutina.length,S.splits.length)}/${S.p.rutina.length}</b><span>ejercicios</span></div></div>
+    <div class="bars">${barras}</div></div><div class="row"><button id="imp" class="sec">Imprimir / PDF</button><button id="otro">Otro atleta</button></div>`;
   };
   const pinta=()=>{
     const rut=S.p.rutina,e=rut[S.ej];
     let h=`<div class="meta"><span>${esc(S.a.nombre)} ${esc(S.a.cat||'')}</span><span>${esc(S.p.nombre)}</span></div>`;
     if(S.done)h=resumen();
     else if(!S.t0)h+=`<div class="ej">${esc(rut[0].nombre)} ${rut[0].reps}</div><p>${rut.length} ejercicios · ${tot()} reps · cap ${fmt(S.p.cap)}</p><button id="ini" class="tap" style="font-size:44px">Iniciar</button>`;
-    else h+=`<div class="ej">${esc(e.nombre)}</div><div class="meta"><span class="tm" id="tm"></span><span>${S.reps}/${tot()} reps</span></div><button id="tap" class="tap">${S.rep}<small>de ${e.reps}</small></button><div class="row"><button id="nu" class="nula">Nula (${S.nulas})</button><button id="un" class="sec">Deshacer</button><button id="te" class="sec">Terminar</button></div>`;
+    else h+=`<div class="ej">${esc(e.nombre)}</div><div class="meta count"><span class="tm" id="tm"></span><span class="tot">${S.reps}/${tot()} reps</span></div><button id="tap" class="tap">${S.rep}<small>de ${e.reps}</small></button><div class="row"><button id="nu" class="nula">Nula (${S.nulas})</button><button id="un" class="sec">Deshacer</button><button id="te" class="sec">Terminar</button></div>`;
     $('#j').innerHTML=h;
     q('#otro',()=>{S=null;setup();});
     q('#imp',()=>print());
