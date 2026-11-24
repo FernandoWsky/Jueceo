@@ -32,6 +32,19 @@ th{font-size:13px;color:var(--mut)}
 .nula{background:var(--red)}
 #net{display:none;background:#f0a500;color:#000;text-align:center;padding:6px;font-size:14px}
 body.off #net{display:block}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+.sum h3{margin:8px 0 0;font-size:24px}
+.sum .sub{color:var(--mut);margin:2px 0 12px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600;color:#fff;background:var(--green)}
+.badge.cap{background:var(--red)}
+.kp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0}
+.kp div{background:var(--paper);border-radius:10px;padding:10px}
+.kp b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+.kp span{color:var(--mut);font-size:13px}
+.kp .big{grid-column:1/-1;background:var(--ink);color:#fff}
+.kp .big b{font-size:44px}
+.kp .big span{color:#b9c4cd}
+@media print{header,button,#net{display:none}}
 .err{color:var(--red)}
 </style></head>
 <body>
@@ -48,6 +61,7 @@ db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 const $=s=>document.querySelector(s),app=$('#app');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const fmtD=s=>Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0');
 let user=null,unsub=[];
 const isAdmin=()=>user&&user.email===ADMIN_EMAIL;
 const net=()=>document.body.classList.toggle('off',!navigator.onLine);
@@ -123,14 +137,17 @@ function publico(){
   });
   function pinta(D){
     const rs=D.r.filter(r=>!cat||r.cat===cat);let h;
+    const tp=p=>p.rutina.reduce((s,x)=>s+x.reps,0),sc=(r,p)=>Math.round(r.reps/tp(p)*1000)/10;
     if(sel==='general'){
-      const pts={};
-      D.p.forEach(p=>rank(rs.filter(r=>r.pruebaId===p.id)).forEach((r,i)=>{const o=pts[r.atletaId]=pts[r.atletaId]||{n:r.nombre,c:r.cat,t:0};o.t+=PUNTOS[i]||0;}));
-      h='<tr><th>#</th><th>Atleta</th><th>Categoría</th><th>Puntos</th></tr>'+Object.values(pts).sort((a,b)=>b.t-a.t).map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}</td><td>${esc(o.c)}</td><td>${o.t}</td></tr>`).join('');
+      const m={};
+      D.p.forEach(p=>rs.filter(r=>r.pruebaId===p.id).forEach(r=>{const o=m[r.atletaId]=m[r.atletaId]||{n:r.nombre,c:r.cat,t:0};o.t+=sc(r,p);}));
+      const n=D.p.length||1;
+      h='<tr><th>#</th><th>Atleta</th><th>Categoría</th><th>Puntaje</th></tr>'+Object.values(m).map(o=>({...o,t:Math.round(o.t/n*10)/10})).sort((a,b)=>b.t-a.t).map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}</td><td>${esc(o.c)}</td><td>${o.t}</td></tr>`).join('');
     }else{
-      h='<tr><th>#</th><th>Atleta</th><th>Reps</th><th>Tiempo</th><th>Nulas</th></tr>'+rank(rs.filter(r=>r.pruebaId===sel)).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nombre)}</td><td>${r.reps}</td><td>${r.done?fmt(r.tiempo)+(r.completo?'':' (cap)'):'En curso'}</td><td>${r.nulas}</td></tr>`).join('');
+      const p=D.p.find(x=>x.id===sel);
+      h='<tr><th>#</th><th>Atleta</th><th>Reps</th><th>Tiempo</th><th>Nulas</th><th>Puntaje</th></tr>'+(p?rank(rs.filter(r=>r.pruebaId===sel)).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nombre)}</td><td>${r.reps}</td><td>${r.done?fmtD(r.tiempo)+(r.completo?'':' (cap)'):'En curso'}</td><td>${r.nulas}</td><td>${sc(r,p)}</td></tr>`).join(''):'');
     }
-    $('#t').innerHTML=`<table>${h}</table>`;
+`<table>${h}</table>`;
   }
 }
 
@@ -139,20 +156,21 @@ function juez(){
   let S=null,iv=null,D;
   unsub.push(()=>clearInterval(iv));
   const tot=()=>S.p.rutina.reduce((s,x)=>s+x.reps,0);
-  const snap=()=>({ej:S.ej,rep:S.rep,reps:S.reps,nulas:S.nulas});
-  const guarda=()=>db.collection('resultados').doc(S.p.id+'_'+S.a.id).set({pruebaId:S.p.id,atletaId:S.a.id,nombre:S.a.nombre,cat:S.a.cat||'',reps:S.reps,nulas:S.nulas,ej:S.ej,rep:S.rep,t0:S.t0,done:S.done,completo:S.completo,tiempo:S.tiempo,upd:Date.now()});
+  const snap=()=>({ej:S.ej,rep:S.rep,reps:S.reps,nulas:S.nulas,splits:S.splits.slice()});
+  const guarda=()=>db.collection('resultados').doc(S.p.id+'_'+S.a.id).set({pruebaId:S.p.id,atletaId:S.a.id,nombre:S.a.nombre,cat:S.a.cat||'',reps:S.reps,nulas:S.nulas,ej:S.ej,rep:S.rep,t0:S.t0,done:S.done,completo:S.completo,tiempo:S.tiempo,upd:Date.now(),juez:S.juez||'',juezUid:user.uid,total:tot(),splits:S.splits,fin:S.fin||null});
   const opts=()=>{
     if(S)return;const sp=$('#sp'),sa=$('#sa');if(!sp)return;const a=sp.value,b=sa.value;
     sp.innerHTML=D.p.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
     sa.innerHTML=D.a.map(x=>`<option value="${x.id}">${esc(x.nombre)} ${esc(x.cat||'')}</option>`).join('');
     sp.value=a;sa.value=b;
   };
-  const setup=()=>{$('#j').innerHTML=`<h2>Nuevo conteo</h2><select id="sp"></select><select id="sa"></select><button id="pre">Preparar</button>`;opts();$('#pre').onclick=prep;};
+  const setup=()=>{$('#j').innerHTML=`<h2>Nuevo conteo</h2>${user.displayName?`<p>Juez: ${esc(user.displayName)}</p>`:'<input id="jn" placeholder="Tu nombre (juez)">'}<select id="sp"></select><select id="sa"></select><button id="pre">Preparar</button>`;opts();$('#pre').onclick=prep;};
   const prep=()=>{
     const p=D.p.find(x=>x.id===$('#sp').value),a=D.a.find(x=>x.id===$('#sa').value);if(!p||!a)return;
     const r=D.r.find(x=>x.id===p.id+'_'+a.id);
-    S={p,a,ej:0,rep:0,reps:0,nulas:0,t0:null,done:false,completo:false,tiempo:null,hist:[]};
-    if(r)Object.assign(S,{ej:r.ej,rep:r.rep,reps:r.reps,nulas:r.nulas,t0:r.t0,done:r.done,completo:r.completo,tiempo:r.tiempo});
+    let jn=user.displayName;if(!jn){jn=($('#jn')?.value||'').trim();if(!jn)return alert('Escribe tu nombre de juez.');user.updateProfile({displayName:jn});}
+    S={p,a,ej:0,rep:0,reps:0,nulas:0,t0:null,done:false,completo:false,tiempo:null,hist:[],splits:[],juez:jn,fin:null};
+    if(r)Object.assign(S,{ej:r.ej,rep:r.rep,reps:r.reps,nulas:r.nulas,t0:r.t0,done:r.done,completo:r.completo,tiempo:r.tiempo,splits:r.splits||[],juez:r.juez||jn,fin:r.fin||null});
     pinta();if(S.t0&&!S.done)corre();
   };
   const corre=()=>{clearInterval(iv);iv=setInterval(tick,250);navigator.wakeLock?.request('screen')?.catch(()=>{});};
@@ -162,23 +180,32 @@ function juez(){
     if(t>=S.p.cap)return fin(false,S.p.cap);
     const el=$('#tm');if(el)el.textContent=fmt(Math.ceil(S.p.cap-t));
   };
-  const fin=(c,t)=>{clearInterval(iv);S.done=true;S.completo=c;S.tiempo=Math.round(t*10)/10;guarda();pinta();};
+  const fin=(c,t)=>{clearInterval(iv);if(c&&S.splits.length<S.p.rutina.length)S.splits.push(Math.round(t*10)/10);S.fin=Date.now();S.done=true;S.completo=c;S.tiempo=Math.round(t*10)/10;guarda();pinta();};
   const toque=()=>{
     if(S.done)return;navigator.vibrate?.(25);
     S.hist.push(snap());S.reps++;S.rep++;
     if(S.reps>=tot())return fin(true,(Date.now()-S.t0)/1000);
-    if(S.rep>=S.p.rutina[S.ej].reps){S.ej++;S.rep=0;}
+    if(S.rep>=S.p.rutina[S.ej].reps){S.splits.push(Math.round((Date.now()-S.t0)/100)/10);S.ej++;S.rep=0;}
     guarda();pinta();
   };
   const q=(s,f)=>{const x=$(s);if(x)x.onclick=f;};
+  const resumen=()=>{
+    let acc=0,prev=0;
+    const filas=S.p.rutina.map((e,i)=>{const hecho=Math.max(0,Math.min(e.reps,S.reps-acc));acc+=e.reps;const t=S.splits[i];const dt=t!=null?fmtD(t-prev):'—';if(t!=null)prev=t;return `<tr><td>${esc(e.nombre)}</td><td>${hecho}/${e.reps}</td><td>${dt}</td></tr>`;}).join('');
+    const sc=Math.round(S.reps/tot()*1000)/10,ok=S.completo;
+    return `<div class="sum"><span class="badge${ok?'':' cap'}">${ok?'Rutina completa':'Time cap'}</span><h3>${esc(S.a.nombre)}</h3><p class="sub">${esc(S.a.cat||'Sin categoría')} · ${esc(S.p.nombre)}<br>Juez: ${esc(S.juez||'—')}${S.fin?' · '+new Date(S.fin).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}):''}</p>
+    <div class="kp"><div class="big"><b>${sc}</b><span>puntaje de 100</span></div><div><b>${S.reps}/${tot()}</b><span>repeticiones</span></div><div><b>${S.nulas}</b><span>nulas</span></div><div><b>${fmtD(S.tiempo)}</b><span>tiempo total</span></div><div><b>${Math.min(S.p.rutina.length,S.splits.length)}/${S.p.rutina.length}</b><span>ejercicios</span></div></div>
+    <table><tr><th>Ejercicio</th><th>Reps</th><th>Tiempo</th></tr>${filas}</table></div><div class="row"><button id="imp" class="sec">Imprimir / PDF</button><button id="otro">Otro atleta</button></div>`;
+  };
   const pinta=()=>{
     const rut=S.p.rutina,e=rut[S.ej];
     let h=`<div class="meta"><span>${esc(S.a.nombre)} ${esc(S.a.cat||'')}</span><span>${esc(S.p.nombre)}</span></div>`;
-    if(S.done)h+=`<h2>${S.completo?'Terminó la rutina':'Se acabó el time cap'}</h2><p class="tm">${S.reps}/${tot()} reps</p><p>Tiempo: ${fmt(S.tiempo)} · Nulas: ${S.nulas}</p><button id="otro">Otro atleta</button>`;
+    if(S.done)h=resumen();
     else if(!S.t0)h+=`<div class="ej">${esc(rut[0].nombre)} ${rut[0].reps}</div><p>${rut.length} ejercicios · ${tot()} reps · cap ${fmt(S.p.cap)}</p><button id="ini" class="tap" style="font-size:44px">Iniciar</button>`;
     else h+=`<div class="ej">${esc(e.nombre)}</div><div class="meta"><span class="tm" id="tm"></span><span>${S.reps}/${tot()} reps</span></div><button id="tap" class="tap">${S.rep}<small>de ${e.reps}</small></button><div class="row"><button id="nu" class="nula">Nula (${S.nulas})</button><button id="un" class="sec">Deshacer</button><button id="te" class="sec">Terminar</button></div>`;
     $('#j').innerHTML=h;
     q('#otro',()=>{S=null;setup();});
+    q('#imp',()=>print());
     q('#ini',()=>{S.t0=Date.now();guarda();corre();pinta();});
     q('#tap',toque);
     q('#nu',()=>{S.hist.push(snap());S.nulas++;guarda();pinta();});
