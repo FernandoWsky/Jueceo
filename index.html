@@ -3,94 +3,108 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Jueceo de resistencia</title>
 <style>
-:root{--ink:#15212b;--paper:#f3f5f7;--card:#fff;--line:#d5dbe1;--blue:#1a5fd0;--green:#12805c;--red:#c93c32;--mut:#5b6b78}
+:root{--ink:#f5f6f8;--paper:#16181d;--card:#21252e;--card2:#1e222b;--line:rgba(255,255,255,.08);--red:#e5484d;--mut:#8b90a0}
 *{box-sizing:border-box}
 body{margin:0;font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--paper);color:var(--ink);touch-action:manipulation}
-header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--ink);color:#fff}
-header a{color:#fff;text-decoration:none;font-weight:700}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(22,24,29,.92);color:var(--ink);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
+header a{color:var(--ink);text-decoration:none;font-weight:700}
+header a:first-child{font-family:Georgia,"Times New Roman",serif;font-size:20px;letter-spacing:.02em}
 header nav{display:flex;gap:14px;font-size:14px}
 .wrap{max-width:760px;margin:0 auto;padding:16px}
-h2{font-size:18px;margin:24px 0 8px}
-input,select,textarea,button{font:inherit;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%;margin:4px 0}
-button{background:var(--blue);color:#fff;border:0;font-weight:600;cursor:pointer}
-button.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
-button.del{width:auto;background:none;color:var(--red);padding:4px 8px;margin:0}
-:focus-visible{outline:3px solid #f0a500;outline-offset:2px}
+h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin:24px 0 8px}
+input,select,textarea,button{font:inherit;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card2);color:var(--ink);width:100%;margin:4px 0;box-shadow:inset 0 2px 6px rgba(0,0,0,.4)}
+input::placeholder,textarea::placeholder{color:#6b7280}
+select option{background:#21252e}
+button{background:#2b303d;color:var(--ink);border:1px solid rgba(255,255,255,.1);font-weight:700;cursor:pointer;border-radius:14px;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+button:active{transform:translateY(1px)}
+button.sec{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+button.del{width:auto;background:none;color:var(--red);padding:4px 8px;margin:0;box-shadow:none;border:0}
+:focus-visible{outline:2px solid rgba(255,255,255,.55);outline-offset:2px}
 .row{display:flex;gap:8px}.row>*{flex:1}
 ul{list-style:none;padding:0;margin:8px 0}
-li{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:4px 0}
+li{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px;margin:8px 0;box-shadow:0 6px 16px rgba(0,0,0,.3)}
 li small{color:var(--mut);display:block}
-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
 th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
-th{font-size:13px;color:var(--mut)}
+th{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
 .pub td{font-size:clamp(16px,2.4vw,28px)}
-.tap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:42vh;background:var(--green);font-size:min(34vw,190px);line-height:1;border-radius:16px;margin:12px 0}
-.tap small{font-size:20px;font-weight:500;margin-top:8px}
+.pub td:last-child{color:var(--ink);font-weight:800}
+.pub tr.first td{background:rgba(255,255,255,.07)}
+.pub tr.first td:first-child{color:var(--ink)}
+.tap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:42vh;background:var(--card);border:1px solid var(--line);color:var(--ink);font-size:min(34vw,190px);line-height:1;border-radius:28px;margin:12px 0;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+.tap small{font-size:20px;font-weight:500;margin-top:8px;color:var(--mut)}
 .ej{font-size:26px;font-weight:700;margin-top:8px}
 .meta{display:flex;justify-content:space-between;align-items:center;color:var(--mut)}
 .tm{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
-.nula{background:var(--red)}
-#net{display:none;background:#f0a500;color:#000;text-align:center;padding:6px;font-size:14px}
+.nula{background:var(--red);border-color:var(--red);color:#fff}
+#net{display:none;background:#21252e;color:var(--ink);text-align:center;padding:6px;font-size:14px;border-bottom:1px solid var(--line)}
 body.off #net{display:block}
-.sum{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
-.sum h3{margin:8px 0 0;font-size:24px}
+.sum{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px 16px;margin:12px 0;box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.sum h3{margin:8px 0 0;font-size:26px;font-family:Georgia,"Times New Roman",serif}
 .sum .sub{color:var(--mut);margin:2px 0 12px}
-.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600;color:#fff;background:var(--green)}
-.badge.cap{background:var(--red)}
-.kp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0}
-.kp div{background:var(--paper);border-radius:10px;padding:10px}
-.kp b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700;color:var(--ink);background:rgba(255,255,255,.1);border:1px solid var(--line)}
+.badge.cap{background:var(--red);border-color:var(--red);color:#fff}
+.kp{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
+.kp div{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+.kp b{display:block;font-size:30px;color:var(--ink);font-variant-numeric:tabular-nums}
 .kp span{color:var(--mut);font-size:13px}
-.kp .big{grid-column:1/-1;background:var(--ink);color:#fff}
+.kp .big{grid-column:1/-1;background:var(--card2);color:var(--ink)}
 .kp .big b{font-size:44px}
-.kp .big span{color:#b9c4cd}
-/* Solo pantalla del juez (#j): oscuro + dorado, según las fotos de referencia */
-#j{--bg:#0b0d12;--card:#171a23;--card2:#1f2330;--line:rgba(255,255,255,.09);--gold:#f2b705;--gold2:#ffd84d;--ink:#f6f2e7;--mut:#9aa1b1;--red:#e5484d;background:var(--bg);color:var(--ink);border-radius:24px;padding:20px 16px;margin:16px auto;box-shadow:0 12px 32px rgba(0,0,0,.35)}
-#j h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:10px 0}
-#j input,#j select{padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:#0e1118;color:var(--ink);box-shadow:inset 0 2px 8px rgba(0,0,0,.55)}
+.kp .big span{color:var(--mut)}
+/* Pantalla del juez (#j): monocromo oscuro, estilo Alfred */
+#j{--bg:#16181d;--card:#21252e;--card2:#1e222b;--line:rgba(255,255,255,.08);--ink:#f5f6f8;--mut:#8b90a0;--red:#e5484d;background:var(--bg);color:var(--ink);border-radius:24px;padding:20px 16px;margin:16px auto;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+#j h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin:10px 0}
+#j input,#j select{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:#1e222b;color:var(--ink);box-shadow:inset 0 2px 6px rgba(0,0,0,.4)}
 #j input::placeholder{color:#6b7280}
-#j select option{background:#171a23}
-#j button{padding:14px;border:0;border-radius:999px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#191204;font-weight:800;box-shadow:0 8px 20px rgba(242,183,5,.25)}
-#j button:active{transform:translateY(1px);box-shadow:0 4px 12px rgba(242,183,5,.2)}
+#j select option{background:#21252e}
+#j button{padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:#2b303d;color:var(--ink);font-weight:700;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+#j button:active{transform:translateY(1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
 #j button.sec{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.35)}
-#j :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#j :focus-visible{outline:2px solid rgba(255,255,255,.55);outline-offset:2px}
 #j .meta{color:var(--mut)}
 #j .meta span:first-child{color:var(--ink);font-weight:700}
 #j .count{align-items:flex-end;margin-top:4px}
 #j .count .tm{font-size:56px;line-height:1}
 #j .count .tot{color:var(--ink);font-size:22px;font-weight:700}
-#j .tm{font-size:44px;font-weight:800;color:var(--gold)}
-#j .tap{min-height:44vh;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#191204;font-size:min(38vw,220px);border-radius:28px;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 12px 32px rgba(242,183,5,.35),inset 0 2px 0 rgba(255,255,255,.5)}
-#j .tap small{font-size:20px;font-weight:700;color:#5c4510}
-#j .tap:active{transform:translateY(3px);box-shadow:0 6px 16px rgba(242,183,5,.3)}
+#j .tm{font-size:44px;font-weight:800;color:var(--ink)}
+#j .tap{min-height:44vh;background:var(--card);border:1px solid var(--line);color:var(--ink);font-size:min(38vw,220px);border-radius:28px;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+#j .tap small{font-size:20px;font-weight:700;color:var(--mut)}
+#j .tap:active{transform:translateY(3px);box-shadow:0 6px 16px rgba(0,0,0,.3)}
 #j .ej{font-size:30px;font-weight:800;margin-top:12px;color:var(--ink)}
-#j .nula{background:linear-gradient(180deg,#f0565b,#d92b31);color:#fff;box-shadow:0 8px 20px rgba(229,72,77,.3)}
-#j .sum{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:24px;padding:20px 16px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
-#j .sum h3{margin:10px 0 0;font-size:26px}
+#j .nula{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 8px 20px rgba(229,72,77,.25)}
+#j .sum{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:20px 16px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
+#j .sum h3{margin:10px 0 0;font-size:26px;font-family:Georgia,"Times New Roman",serif}
 #j .sum .sub{color:var(--mut);margin:2px 0 16px}
-#j .badge{padding:4px 12px;border-radius:999px;font-weight:800;color:#191204;background:var(--gold)}
-#j .badge.cap{background:var(--red);color:#fff}
+#j .badge{padding:4px 12px;border-radius:999px;font-weight:700;color:var(--ink);background:rgba(255,255,255,.1);border:1px solid var(--line)}
+#j .badge.cap{background:var(--red);border-color:var(--red);color:#fff}
 #j .ring-wrap{display:flex;justify-content:center;margin:10px 0 4px}
 #j .ring{width:190px;height:190px}
 #j .ring-bg{fill:none;stroke:rgba(255,255,255,.1);stroke-width:11}
-#j .ring-fg{fill:none;stroke:var(--gold);stroke-width:11;stroke-linecap:round;transform:rotate(-90deg);transform-origin:center;filter:drop-shadow(0 0 8px rgba(242,183,5,.45))}
+#j .ring-fg{fill:none;stroke:var(--ink);stroke-width:11;stroke-linecap:round;transform:rotate(-90deg);transform-origin:center}
 #j .ring-num{fill:var(--ink);font-size:44px;font-weight:800;text-anchor:middle}
 #j .ring-lbl{fill:var(--mut);font-size:13px;text-anchor:middle}
 #j .kp{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0}
-#j .kp div{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 6px 16px rgba(0,0,0,.3)}
-#j .kp b{display:block;font-size:30px;color:var(--gold)}
+#j .kp div{background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+#j .kp b{display:block;font-size:30px;color:var(--ink)}
 #j .kp span{color:var(--mut)}
 #j .bars{margin:16px 0 4px}
 #j .bar-row{margin:14px 0}
 #j .bar-head{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin-bottom:6px}
 #j .bar-head b{font-weight:700}
 #j .bar-head span{color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
-#j .bar{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
-#j .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+#j .bar{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+#j .bar i{display:block;height:100%;border-radius:999px;background:var(--ink)}
+/* Login: centrado, como la pantalla de Alfred */
+.login{max-width:420px;padding-top:56px;text-align:center}
+.login .medal{width:96px;height:96px;margin:0 auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Georgia,"Times New Roman",serif;font-size:44px;font-weight:700;color:var(--ink);background:var(--card);border:1px solid var(--line);box-shadow:0 10px 28px rgba(0,0,0,.5),inset 0 2px 10px rgba(255,255,255,.06)}
+.login h2{text-align:center;font-family:Georgia,"Times New Roman",serif;font-size:26px;letter-spacing:0;text-transform:none;margin:8px 0 4px}
+.login .wel{color:var(--mut);font-size:14px;margin:0 0 16px}
+.login .err{min-height:20px}
 @media print{header,button,#net{display:none}}
-@media print{#j{background:#fff!important;color:#000!important;box-shadow:none}#j .sum,#j .kp div{background:#fff!important;color:#000!important;border-color:#ccc!important}#j .kp b{color:#000}#j .ring-num{fill:#000}#j .ring-fg{stroke:#b98a0a}}
+@media print{#j{background:#fff!important;color:#000!important;box-shadow:none}#j .sum,#j .kp div{background:#fff!important;color:#000!important;border-color:#ccc!important}#j .kp b{color:#000}#j .ring-num{fill:#000}#j .ring-fg{stroke:#000}}
 .err{color:var(--red)}
-</style></head>
+</style>
+</head>
 <body>
 <div id="net">Sin conexión: los toques se guardan y se envían al volver la señal.</div>
 <div id="app"></div>
@@ -142,7 +156,7 @@ function route(){
 }
 
 function login(){
-  app.innerHTML=nav()+`<div class="wrap"><h2>Entrar como juez</h2><input id="em" type="email" placeholder="Correo" autocomplete="username"><input id="pw" type="password" placeholder="Contraseña" autocomplete="current-password"><button id="go">Entrar</button><p class="err" id="er"></p></div>`;
+  app.innerHTML=nav()+`<div class="wrap login"><div class="medal">J</div><h2>Jueceo</h2><p class="wel">Bienvenido, entra con tu cuenta de juez.</p><input id="em" type="email" placeholder="Correo" autocomplete="username"><input id="pw" type="password" placeholder="Contraseña" autocomplete="current-password"><button id="go">Entrar</button><p class="err" id="er"></p></div>`;
   $('#go').onclick=()=>auth.signInWithEmailAndPassword($('#em').value.trim(),$('#pw').value).catch(()=>$('#er').textContent='Correo o contraseña incorrectos.');
 }
 
@@ -186,10 +200,10 @@ function publico(){
       const m={};
       D.p.forEach(p=>rs.filter(r=>r.pruebaId===p.id).forEach(r=>{const o=m[r.atletaId]=m[r.atletaId]||{n:r.nombre,c:r.cat,t:0};o.t+=sc(r,p);}));
       const n=D.p.length||1;
-      h='<tr><th>#</th><th>Atleta</th><th>Categoría</th><th>Puntaje</th></tr>'+Object.values(m).map(o=>({...o,t:Math.round(o.t/n*10)/10})).sort((a,b)=>b.t-a.t).map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}</td><td>${esc(o.c)}</td><td>${o.t}</td></tr>`).join('');
+      h='<tr><th>#</th><th>Atleta</th><th>Categoría</th><th>Puntaje</th></tr>'+Object.values(m).map(o=>({...o,t:Math.round(o.t/n*10)/10})).sort((a,b)=>b.t-a.t).map((o,i)=>`<tr${i===0?' class="first"':''}><td>${i+1}</td><td>${esc(o.n)}</td><td>${esc(o.c)}</td><td>${o.t}</td></tr>`).join('');
     }else{
       const p=D.p.find(x=>x.id===sel);
-      h='<tr><th>#</th><th>Atleta</th><th>Reps</th><th>Tiempo</th><th>Nulas</th><th>Puntaje</th></tr>'+(p?rank(rs.filter(r=>r.pruebaId===sel)).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nombre)}</td><td>${r.reps}</td><td>${r.done?fmtD(r.tiempo)+(r.completo?'':' (cap)'):'En curso'}</td><td>${r.nulas}</td><td>${sc(r,p)}</td></tr>`).join(''):'');
+      h='<tr><th>#</th><th>Atleta</th><th>Reps</th><th>Tiempo</th><th>Nulas</th><th>Puntaje</th></tr>'+(p?rank(rs.filter(r=>r.pruebaId===sel)).map((r,i)=>`<tr${i===0?' class="first"':''}><td>${i+1}</td><td>${esc(r.nombre)}</td><td>${r.reps}</td><td>${r.done?fmtD(r.tiempo)+(r.completo?'':' (cap)'):'En curso'}</td><td>${r.nulas}</td><td>${sc(r,p)}</td></tr>`).join(''):'');
     }
     $('#t').innerHTML=`<table>${h}</table>`;
   }
