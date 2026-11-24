@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jueceo de resistencia</title>
+<style>
+:root{--ink:#15212b;--paper:#f3f5f7;--card:#fff;--line:#d5dbe1;--blue:#1a5fd0;--green:#12805c;--red:#c93c32;--mut:#5b6b78}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--paper);color:var(--ink);touch-action:manipulation}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--ink);color:#fff}
+header a{color:#fff;text-decoration:none;font-weight:700}
+header nav{display:flex;gap:14px;font-size:14px}
+.wrap{max-width:760px;margin:0 auto;padding:16px}
+h2{font-size:18px;margin:24px 0 8px}
+input,select,textarea,button{font:inherit;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%;margin:4px 0}
+button{background:var(--blue);color:#fff;border:0;font-weight:600;cursor:pointer}
+button.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button.del{width:auto;background:none;color:var(--red);padding:4px 8px;margin:0}
+:focus-visible{outline:3px solid #f0a500;outline-offset:2px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+ul{list-style:none;padding:0;margin:8px 0}
+li{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:4px 0}
+li small{color:var(--mut);display:block}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{font-size:13px;color:var(--mut)}
+.pub td{font-size:clamp(16px,2.4vw,28px)}
+.tap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:42vh;background:var(--green);font-size:min(34vw,190px);line-height:1;border-radius:16px;margin:12px 0}
+.tap small{font-size:20px;font-weight:500;margin-top:8px}
+.ej{font-size:26px;font-weight:700;margin-top:8px}
+.meta{display:flex;justify-content:space-between;align-items:center;color:var(--mut)}
+.tm{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.nula{background:var(--red)}
+#net{display:none;background:#f0a500;color:#000;text-align:center;padding:6px;font-size:14px}
+body.off #net{display:block}
+.err{color:var(--red)}
+</style></head>
+<body>
+<div id="net">Sin conexión: los toques se guardan y se envían al volver la señal.</div>
+<div id="app"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(),db=firebase.firestore();
+db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+let user=null,unsub=[];
+const isAdmin=()=>user&&user.email===ADMIN_EMAIL;
+const net=()=>document.body.classList.toggle('off',!navigator.onLine);
+addEventListener('online',net);addEventListener('offline',net);net();
+
+const nav=()=>`<header><a href="#/">Jueceo</a><nav>${user?'<a href="#/juez">Juzgar</a>':''}${isAdmin()?'<a href="#/admin">Admin</a>':''}<a href="#/publico">Marcador</a>${user?'<a href="#" id="out">Salir</a>':''}</nav></header>`;
+const li=(t,s,c,id)=>`<li><span>${esc(t)}<small>${esc(s)}</small></span><button class="del" data-c="${c}" data-id="${id}">Borrar</button></li>`;
+document.addEventListener('click',e=>{
+  if(e.target.id==='out'){e.preventDefault();auth.signOut();}
+  const d=e.target.dataset;
+  if(d&&d.c&&confirm('¿Borrar?'))db.collection(d.c).doc(d.id).delete();
+});
+
+function datos(cb){
+  const D={p:[],a:[],r:[]};
+  [['pruebas','p'],['atletas','a'],['resultados','r']].forEach(([c,k])=>unsub.push(db.collection(c).onSnapshot(s=>{
+    D[k]=s.docs.map(d=>({id:d.id,...d.data()}));
+    D.p.sort((x,y)=>x.creado-y.creado);D.a.sort((x,y)=>x.nombre.localeCompare(y.nombre));cb(D);
+  })));
+  return D;
+}
+const rank=rs=>rs.slice().sort((a,b)=>b.reps-a.reps||(a.tiempo??1e9)-(b.tiempo??1e9));
+
+auth.onAuthStateChanged(u=>{user=u;route();});
+addEventListener('hashchange',route);
+function route(){
+  unsub.forEach(f=>f());unsub=[];
+  const h=location.hash||'#/';
+  if(h==='#/publico')return publico();
+  if(!user)return login();
+  if(h==='#/admin'&&isAdmin())return admin();
+  if(h==='#/juez')return juez();
+  location.hash=isAdmin()?'#/admin':'#/juez';
+}
+
+function login(){
+  app.innerHTML=nav()+`<div class="wrap"><h2>Entrar como juez</h2><input id="em" type="email" placeholder="Correo" autocomplete="username"><input id="pw" type="password" placeholder="Contraseña" autocomplete="current-password"><button id="go">Entrar</button><p class="err" id="er"></p></div>`;
+  $('#go').onclick=()=>auth.signInWithEmailAndPassword($('#em').value.trim(),$('#pw').value).catch(()=>$('#er').textContent='Correo o contraseña incorrectos.');
+}
+
+function admin(){
+  app.innerHTML=nav()+`<div class="wrap">
+  <h2>Atletas</h2>
+  <form id="fa" class="row"><input name="n" placeholder="Nombre" required><input name="c" placeholder="Categoría (ej. Varonil)"><button>Agregar</button></form>
+  <ul id="la"></ul>
+  <h2>Pruebas</h2>
+  <form id="fp"><input name="n" placeholder="Nombre de la prueba" required><input name="m" type="number" min="0.5" step="0.5" placeholder="Time cap (minutos)" required>
+  <textarea name="r" rows="6" placeholder="Rutina, un ejercicio por línea:&#10;Sentadillas 10&#10;Dominadas 5" required></textarea><button>Crear prueba</button></form>
+  <ul id="lp"></ul></div>`;
+  datos(D=>{
+    $('#la').innerHTML=D.a.map(a=>li(a.nombre,a.cat||'Sin categoría','atletas',a.id)).join('')||'<li>Aún no hay atletas</li>';
+    $('#lp').innerHTML=D.p.map(p=>li(p.nombre,'Cap '+fmt(p.cap)+' · '+p.rutina.map(e=>e.nombre+' '+e.reps).join(', '),'pruebas',p.id)).join('')||'<li>Aún no hay pruebas</li>';
+  });
+  $('#fa').onsubmit=e=>{e.preventDefault();const f=e.target;db.collection('atletas').add({nombre:f.n.value.trim(),cat:f.c.value.trim()});f.reset();};
+  $('#fp').onsubmit=e=>{e.preventDefault();const f=e.target;
+    const rutina=f.r.value.split('\n').map(l=>l.trim().match(/^(.+?)\s+(\d+)$/)).filter(Boolean).map(m=>({nombre:m[1],reps:+m[2]}));
+    if(!rutina.length)return alert('Escribe cada ejercicio así: Sentadillas 10');
+    db.collection('pruebas').add({nombre:f.n.value.trim(),cap:Math.round(f.m.value*60),rutina,creado:Date.now()});f.reset();};
+}
+
+function publico(){
+  let sel='general',cat='',sig='';
+  app.innerHTML=nav()+`<div class="wrap pub"><div class="row" id="f"></div><div id="t"></div></div>`;
+  datos(D=>{
+    const cats=[...new Set(D.a.map(a=>a.cat).filter(Boolean))];
+    const s=JSON.stringify([D.p.map(p=>p.id),cats]);
+    if(s!==sig){sig=s;
+      $('#f').innerHTML=`<select id="sp"><option value="general">General (puntos)</option>${D.p.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><select id="sc"><option value="">Todas las categorías</option>${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>`;
+      $('#sp').value=sel;$('#sc').value=cat;
+      $('#sp').onchange=e=>{sel=e.target.value;pinta(D)};$('#sc').onchange=e=>{cat=e.target.value;pinta(D)};
+    }
+    pinta(D);
+  });
+  function pinta(D){
+    const rs=D.r.filter(r=>!cat||r.cat===cat);let h;
+    if(sel==='general'){
+      const pts={};
+      D.p.forEach(p=>rank(rs.filter(r=>r.pruebaId===p.id)).forEach((r,i)=>{const o=pts[r.atletaId]=pts[r.atletaId]||{n:r.nombre,c:r.cat,t:0};o.t+=PUNTOS[i]||0;}));
+      h='<tr><th>#</th><th>Atleta</th><th>Categoría</th><th>Puntos</th></tr>'+Object.values(pts).sort((a,b)=>b.t-a.t).map((o,i)=>`<tr><td>${i+1}</td><td>${esc(o.n)}</td><td>${esc(o.c)}</td><td>${o.t}</td></tr>`).join('');
+    }else{
+      h='<tr><th>#</th><th>Atleta</th><th>Reps</th><th>Tiempo</th><th>Nulas</th></tr>'+rank(rs.filter(r=>r.pruebaId===sel)).map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.nombre)}</td><td>${r.reps}</td><td>${r.done?fmt(r.tiempo)+(r.completo?'':' (cap)'):'En curso'}</td><td>${r.nulas}</td></tr>`).join('');
+    }
+    $('#t').innerHTML=`<table>${h}</table>`;
+  }
+}
+
+function juez(){
+  app.innerHTML=nav()+`<div class="wrap" id="j"></div>`;
+  let S=null,iv=null,D;
+  unsub.push(()=>clearInterval(iv));
+  const tot=()=>S.p.rutina.reduce((s,x)=>s+x.reps,0);
+  const snap=()=>({ej:S.ej,rep:S.rep,reps:S.reps,nulas:S.nulas});
+  const guarda=()=>db.collection('resultados').doc(S.p.id+'_'+S.a.id).set({pruebaId:S.p.id,atletaId:S.a.id,nombre:S.a.nombre,cat:S.a.cat||'',reps:S.reps,nulas:S.nulas,ej:S.ej,rep:S.rep,t0:S.t0,done:S.done,completo:S.completo,tiempo:S.tiempo,upd:Date.now()});
+  const opts=()=>{
+    if(S)return;const sp=$('#sp'),sa=$('#sa');if(!sp)return;const a=sp.value,b=sa.value;
+    sp.innerHTML=D.p.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+    sa.innerHTML=D.a.map(x=>`<option value="${x.id}">${esc(x.nombre)} ${esc(x.cat||'')}</option>`).join('');
+    sp.value=a;sa.value=b;
+  };
+  const setup=()=>{$('#j').innerHTML=`<h2>Nuevo conteo</h2><select id="sp"></select><select id="sa"></select><button id="pre">Preparar</button>`;opts();$('#pre').onclick=prep;};
+  const prep=()=>{
+    const p=D.p.find(x=>x.id===$('#sp').value),a=D.a.find(x=>x.id===$('#sa').value);if(!p||!a)return;
+    const r=D.r.find(x=>x.id===p.id+'_'+a.id);
+    S={p,a,ej:0,rep:0,reps:0,nulas:0,t0:null,done:false,completo:false,tiempo:null,hist:[]};
+    if(r)Object.assign(S,{ej:r.ej,rep:r.rep,reps:r.reps,nulas:r.nulas,t0:r.t0,done:r.done,completo:r.completo,tiempo:r.tiempo});
+    pinta();if(S.t0&&!S.done)corre();
+  };
+  const corre=()=>{clearInterval(iv);iv=setInterval(tick,250);navigator.wakeLock?.request('screen')?.catch(()=>{});};
+  const tick=()=>{
+    if(!S||!S.t0||S.done)return;
+    const t=(Date.now()-S.t0)/1000;
+    if(t>=S.p.cap)return fin(false,S.p.cap);
+    const el=$('#tm');if(el)el.textContent=fmt(Math.ceil(S.p.cap-t));
+  };
+  const fin=(c,t)=>{clearInterval(iv);S.done=true;S.completo=c;S.tiempo=Math.round(t*10)/10;guarda();pinta();};
+  const toque=()=>{
+    if(S.done)return;navigator.vibrate?.(25);
+    S.hist.push(snap());S.reps++;S.rep++;
+    if(S.reps>=tot())return fin(true,(Date.now()-S.t0)/1000);
+    if(S.rep>=S.p.rutina[S.ej].reps){S.ej++;S.rep=0;}
+    guarda();pinta();
+  };
+  const q=(s,f)=>{const x=$(s);if(x)x.onclick=f;};
+  const pinta=()=>{
+    const rut=S.p.rutina,e=rut[S.ej];
+    let h=`<div class="meta"><span>${esc(S.a.nombre)} ${esc(S.a.cat||'')}</span><span>${esc(S.p.nombre)}</span></div>`;
+    if(S.done)h+=`<h2>${S.completo?'Terminó la rutina':'Se acabó el time cap'}</h2><p class="tm">${S.reps}/${tot()} reps</p><p>Tiempo: ${fmt(S.tiempo)} · Nulas: ${S.nulas}</p><button id="otro">Otro atleta</button>`;
+    else if(!S.t0)h+=`<div class="ej">${esc(rut[0].nombre)} ${rut[0].reps}</div><p>${rut.length} ejercicios · ${tot()} reps · cap ${fmt(S.p.cap)}</p><button id="ini" class="tap" style="font-size:44px">Iniciar</button>`;
+    else h+=`<div class="ej">${esc(e.nombre)}</div><div class="meta"><span class="tm" id="tm"></span><span>${S.reps}/${tot()} reps</span></div><button id="tap" class="tap">${S.rep}<small>de ${e.reps}</small></button><div class="row"><button id="nu" class="nula">Nula (${S.nulas})</button><button id="un" class="sec">Deshacer</button><button id="te" class="sec">Terminar</button></div>`;
+    $('#j').innerHTML=h;
+    q('#otro',()=>{S=null;setup();});
+    q('#ini',()=>{S.t0=Date.now();guarda();corre();pinta();});
+    q('#tap',toque);
+    q('#nu',()=>{S.hist.push(snap());S.nulas++;guarda();pinta();});
+    q('#un',()=>{const h=S.hist.pop();if(h){Object.assign(S,h);guarda();pinta();}});
+    q('#te',()=>{if(confirm('¿Terminar ahora?'))fin(false,(Date.now()-S.t0)/1000);});
+    tick();
+  };
+  D=datos(opts);
+  setup();
+}
+</script>
+</body></html>
