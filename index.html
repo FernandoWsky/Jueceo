@@ -59,6 +59,14 @@ p.sub{color:var(--mut);margin:2px 0}
 .iso.pau{background:var(--blue)}
 .row.ctl{flex-wrap:wrap}.row.ctl>*{flex:1 1 30%}
 td a{color:inherit}
+header{flex-wrap:wrap}
+header nav{gap:12px;font-size:11px;overflow-x:auto}
+header nav a{display:flex;flex-direction:column;align-items:center}
+header nav b{font-size:18px;font-weight:400;line-height:1.2}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chip{width:auto;padding:8px 14px;margin:0;border-radius:99px;background:#fff;color:var(--ink);border:1px solid var(--line)}
+.chip.on{background:var(--ink);color:#fff}
+h3.gc{margin:16px 0 4px;font-size:15px;color:var(--mut)}
 .err{color:var(--red)}
 </style></head>
 <body>
@@ -84,7 +92,7 @@ addEventListener('online',net);addEventListener('offline',net);net();
 const TN={cap:'Time Cap',amrap:'AMRAP',libre:'Sin tiempo'};
 const bl=p=>p.bloques||[{tipo:'cap',cap:p.cap,rutina:p.rutina}];
 const TT=b=>b.rutina.reduce((s,e)=>s+(e.reps||1),0);
-const ptsR=(r,p)=>r.pts??Math.round(r.reps/(r.total||TT(bl(p)[r.bloque||0]))*1000)/10;
+const ptsR=(r,p)=>r.pts??Math.round(r.reps/(r.total||TT(bl(p)[r.bloque||0]))*10000)/100;
 const fmtS=s=>s>=60&&s%60===0?s/60+'min':s+'s';
 const fmtMs=ms=>Math.floor(ms/60000)+':'+String(Math.floor(ms%60000/1000)).padStart(2,'0')+'.'+String(Math.floor(ms%1000)).padStart(3,'0');
 const fr=x=>Math.round(x*10)/10;
@@ -94,10 +102,12 @@ const pr=l=>{const [a,b]=l.split(/[\/|]/),e=pl(a);if(!e)return null;if(b){const 
 const ser=e=>e.nombre+' '+(e.reps||fmtS(e.seg))+(e.castigo?' / '+e.castigo.nombre+' '+(e.castigo.reps||fmtS(e.castigo.seg)):'');
 const foto=f=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas'),s=Math.min(i.width,i.height),z=200;c.width=c.height=z;c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,z,z);URL.revokeObjectURL(i.src);ok(c.toDataURL('image/jpeg',.7));};i.onerror=()=>no(new Error('imagen'));i.src=URL.createObjectURL(f);});
 const av=(x,c)=>x?`<img class="av ${c||''}" src="${x}" alt="">`:'';
-const nav=()=>`<header><a href="#/">Jueceo</a><nav>${user?'<a href="#/juez">Juzgar</a><a href="#/perfil">Perfil</a>':''}${isAdmin()?'<a href="#/admin">Admin</a>':''}<a href="#/publico">Marcador</a>${user?'<a href="#" id="out">Salir</a>':''}</nav></header>`;
+const nav=()=>{const L=[['#/publico','🏆','Ranking'],['#/atletas','👥','Atletas']];
+  if(user){L.push(['#/juez','⏱️','Juzgar'],['#/perfil','👤','Perfil']);if(isAdmin())L.push(['#/admin','⚙️','Admin']);L.push(['#','🚪','Salir','out']);}else L.push(['#/login','🔑','Entrar']);
+  return `<header><a href="#/">Jueceo</a><nav>${L.map(x=>`<a href="${x[0]}"${x[3]?' id="out"':''}><b>${x[1]}</b>${x[2]}</a>`).join('')}</nav></header>`;};
 const li=(t,s,c,id,ed)=>`<li><span>${esc(t)}<small>${esc(s)}</small></span><span>${ed?`<button class="del" style="color:var(--blue)" data-ed="${id}">Editar</button>`:''}<button class="del" data-c="${c}" data-id="${id}">Borrar</button></span></li>`;
 document.addEventListener('click',e=>{
-  if(e.target.id==='out'){e.preventDefault();auth.signOut();}
+  if(e.target.closest('#out')){e.preventDefault();auth.signOut();}
   const d=e.target.dataset;
   if(d&&d.c&&confirm('¿Borrar?'))db.collection(d.c).doc(d.id).delete();
 });
@@ -117,7 +127,8 @@ addEventListener('hashchange',route);
 function route(){
   unsub.forEach(f=>f());unsub=[];
   const h=location.hash||'#/';
-  if(h==='#/publico')return publico();
+  if(h==='#/publico'||(!user&&h==='#/'))return publico();
+  if(h==='#/atletas')return atletas();
   if(h.startsWith('#/atleta/'))return atleta(h.slice(9));
   if(!user)return login();
   if(h==='#/admin'&&isAdmin())return admin();
@@ -144,10 +155,10 @@ function admin(){
   <button type="button" id="ab" class="sec">+ Agregar bloque</button><button>Guardar prueba</button><button type="button" id="cx" class="sec" hidden>Cancelar edición</button></form>
   <ul id="lp"></ul></div>`;
   const addB=b=>{const d=document.createElement('div');d.className='blq';
-    d.innerHTML=`<div class="row"><select class="tp"><option value="cap">Time Cap</option><option value="amrap">AMRAP</option><option value="libre">Sin tiempo</option></select><input class="cp" type="number" min="0.5" step="0.5" placeholder="Minutos"></div><textarea rows="5" placeholder="Un ejercicio por línea:&#10;Sentadillas 20&#10;Handstand 30s | Burpees 5"></textarea><button type="button" class="del">Quitar bloque</button>`;
-    const tp=d.querySelector('.tp'),cp=d.querySelector('.cp'),sh=()=>{cp.hidden=tp.value==='libre';};
+    d.innerHTML=`<div class="row"><select class="tp"><option value="cap">Time Cap</option><option value="amrap">AMRAP</option><option value="libre">Sin tiempo</option></select><input class="cp" type="number" min="0.5" step="0.5" placeholder="Minutos"></div><input class="mv" type="number" min="1" placeholder="Opcional (AMRAP): segundos sin hacer una rep para pasar al siguiente ejercicio"><textarea rows="5" placeholder="Un ejercicio por línea:&#10;Sentadillas 20&#10;Handstand 30s | Burpees 5"></textarea><button type="button" class="del">Quitar bloque</button>`;
+    const tp=d.querySelector('.tp'),cp=d.querySelector('.cp'),mv=d.querySelector('.mv'),sh=()=>{cp.hidden=tp.value==='libre';mv.hidden=tp.value!=='amrap';};
     tp.onchange=sh;d.querySelector('.del').onclick=()=>{if($('#bl').children.length>1)d.remove();};
-    if(b){tp.value=b.tipo;cp.value=b.cap?b.cap/60:'';d.querySelector('textarea').value=b.rutina.map(ser).join('\n');}
+    if(b){tp.value=b.tipo;cp.value=b.cap?b.cap/60:'';mv.value=b.mueve||'';d.querySelector('textarea').value=b.rutina.map(ser).join('\n');}
     sh();$('#bl').appendChild(d);};
   const reset=()=>{ed=null;$('#fp').n.value='';$('#bl').innerHTML='';addB();$('#ht').textContent='Nueva prueba';$('#cx').hidden=true;};
   reset();
@@ -173,7 +184,7 @@ function admin(){
       const ls=d.querySelector('textarea').value.split('\n').map(x=>x.trim()).filter(Boolean),rutina=ls.map(pr);
       if(rutina.includes(null))return alert('No entendí esta línea: '+ls[rutina.indexOf(null)]);
       if(!rutina.length||(tipo!=='libre'&&!cap))return alert('Cada bloque necesita ejercicios y, si es Time Cap o AMRAP, los minutos.');
-      bs.push({tipo,cap:tipo==='libre'?0:cap,rutina});}
+      bs.push({tipo,cap:tipo==='libre'?0:cap,rutina,mueve:tipo==='amrap'?(+d.querySelector('.mv').value||0):0});}
     const dato={nombre:e.target.n.value.trim(),bloques:bs};
     if(ed)db.collection('pruebas').doc(ed).set(dato,{merge:true});else db.collection('pruebas').add({...dato,creado:Date.now()});
     reset();};
@@ -181,34 +192,39 @@ function admin(){
 
 
 function publico(){
-  let sel='general',cat='',sig='';
-  app.innerHTML=nav()+`<div class="wrap pub"><div class="row" id="f"></div><div id="t"></div></div>`;
-  datos(D=>{
-    const cats=[...new Set(D.a.map(a=>a.cat).filter(Boolean))];
-    const s=JSON.stringify([D.p.map(p=>p.id),cats]);
-    if(s!==sig){sig=s;
-      $('#f').innerHTML=`<select id="sp"><option value="general">General (puntos)</option>${D.p.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><select id="sc"><option value="">Todas las categorías</option>${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>`;
-      $('#sp').value=sel;$('#sc').value=cat;
-      $('#sp').onchange=e=>{sel=e.target.value;pinta(D)};$('#sc').onchange=e=>{cat=e.target.value;pinta(D)};
-    }
-    pinta(D);
-  });
-  function pinta(D){
-    const rs=D.r.filter(r=>!cat||r.cat===cat);let h;const A=id=>D.a.find(a=>a.id===id)||{};
-    const agg=p=>{const m={},n=bl(p).length;rs.filter(r=>r.pruebaId===p.id).forEach(r=>{const o=m[r.atletaId]=m[r.atletaId]||{id:r.atletaId,n:r.nombre,c:r.cat,s:0,t:0,nu:0,d:[]};o.s+=ptsR(r,p);o.t+=r.tiempo||0;o.nu+=r.nulas||0;if(r.det)o.d.push(r.det);});
-      return Object.values(m).map(o=>({...o,pts:Math.round(o.s/n*10)/10}));};
-    if(sel==='general'){
-      const m={};D.p.forEach(p=>agg(p).forEach(o=>{const x=m[o.id]=m[o.id]||{id:o.id,n:o.n,c:o.c,pts:0};x.pts+=o.pts;}));
-      const n=D.p.length||1;
-      h='<tr><th>#</th><th>Atleta</th><th>Categoría</th><th>Puntaje</th></tr>'+Object.values(m).map(o=>({...o,pts:Math.round(o.pts/n*10)/10})).sort((a,b)=>b.pts-a.pts).map((o,i)=>`<tr><td>${i+1}</td><td>${av(A(o.id).foto)}<a href="#/atleta/${o.id}">${esc(o.n)}</a></td><td>${esc(o.c)}</td><td>${o.pts}</td></tr>`).join('');
-    }else{
-      const p=D.p.find(x=>x.id===sel);
-      h='<tr><th>#</th><th>Atleta</th><th>Puntaje</th><th>Tiempo</th><th>Nulas</th></tr>'+(p?agg(p).sort((a,b)=>b.pts-a.pts||a.t-b.t).map((o,i)=>`<tr><td>${i+1}</td><td>${av(A(o.id).foto)}<a href="#/atleta/${o.id}">${esc(o.n)}</a><small class="d">${esc(o.d.join(' · '))}</small></td><td>${o.pts}</td><td>${fmtD(o.t)}</td><td>${o.nu}</td></tr>`).join(''):'');
-    }
+  let sel='total',cat=null,sig='',DD=null;
+  app.innerHTML=nav()+`<div class="wrap pub"><div id="f"></div><div id="t"></div></div>`;
+  const cats=D=>[...new Set(D.a.map(a=>a.cat||'Sin categoría'))].sort();
+  const pinta=D=>{
+    const A=id=>D.a.find(a=>a.id===id)||{},cc=id=>A(id).cat||'Sin categoría';
+    const ps=sel==='total'?D.p:D.p.filter(p=>p.id===sel),m={};
+    ps.forEach((p,pi)=>D.r.filter(r=>r.pruebaId===p.id&&(!cat||cc(r.atletaId)===cat)).forEach(r=>{
+      const o=m[r.atletaId]=m[r.atletaId]||{id:r.atletaId,n:A(r.atletaId).nombre||r.nombre,s:0,t:0,nu:0,k:0,d:[],pt:[]};
+      const v=ptsR(r,p);o.s+=v;o.t+=r.tiempo||0;o.nu+=r.nulas||0;if(r.done)o.k++;if(r.det)o.d.push(r.det);o.pt.push([pi*100+(r.bloque||0),v]);}));
+    const nb=ps.reduce((s,p)=>s+bl(p).length,0);
+    const rows=Object.values(m).map(o=>({...o,s:Math.round(o.s*100)/100,t:Math.round(o.t*10)/10})).sort((a,b)=>b.s-a.s||a.t-b.t);
+    let pos=0;
+    const h='<tr><th>#</th><th>Atleta</th><th>Puntaje</th><th>Bloques</th><th>Tiempo</th><th>Nulas</th></tr>'+rows.map((o,i)=>{
+      if(!i||o.s!==rows[i-1].s||o.t!==rows[i-1].t)pos=i+1;
+      const par=o.pt.sort((x,y)=>x[0]-y[0]).map(x=>Math.round(x[1]*100)/100);
+      return `<tr><td>${pos}</td><td>${av(A(o.id).foto)}<a href="#/atleta/${o.id}">${esc(o.n)}</a><small class="d">${esc(o.d.join(' · '))}</small></td><td><b>${o.s}</b>${par.length>1?`<small class="d">${par.join(' + ')}</small>`:''}</td><td>${o.k}/${nb}</td><td>${fmtD(o.t)}</td><td>${o.nu}</td></tr>`;}).join('');
     $('#t').innerHTML=`<table>${h}</table>`;
-  }
+  };
+  datos(D=>{DD=D;const cs=cats(D),s=JSON.stringify([D.p.map(p=>p.id+p.nombre),cs]);
+    if(s!==sig){sig=s;if(cat===null||!cs.includes(cat))cat=cs[0]||'';
+      $('#f').innerHTML=`<div class="chips">${cs.map(c=>`<button class="chip${c===cat?' on':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div><select id="sp"><option value="total">Total (suma de todas las pruebas)</option>${D.p.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select>`;
+      $('#sp').value=sel;$('#sp').onchange=e=>{sel=e.target.value;pinta(DD);};}
+    pinta(D);});
+  $('#f').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.cat;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===b));pinta(DD);};
 }
-
+function atletas(){
+  app.innerHTML=nav()+`<div class="wrap"><h2>Atletas</h2><div id="la"></div><h2>Jueces</h2><ul id="lj"></ul></div>`;
+  datos(D=>{
+    const cs=[...new Set(D.a.map(a=>a.cat||'Sin categoría'))].sort();
+    $('#la').innerHTML=cs.map(c=>`<h3 class="gc">${esc(c)}</h3><ul>${D.a.filter(a=>(a.cat||'Sin categoría')===c).map(a=>`<li><a href="#/atleta/${a.id}"><span>${av(a.foto)}${esc(a.nombre)}</span><small>${esc([a.club,a.lugar,a.edad?a.edad+' años':''].filter(Boolean).join(' · '))}</small></a></li>`).join('')}</ul>`).join('')||'<p>Aún no hay atletas.</p>';
+    $('#lj').innerHTML=D.j.map(j=>`<li><span>${av(j.foto)}${esc(j.nombre)}<small>${D.r.filter(r=>r.juezUid===j.id).length} conteos</small></span></li>`).join('')||'<li>Aún no hay perfiles de jueces</li>';
+  });
+}
 function juez(){
   app.innerHTML=nav()+`<div class="wrap" id="j"></div>`;
   let S=null,iv=null,D;
@@ -216,10 +232,10 @@ function juez(){
   const nb=()=>bl(S.p).length,T=()=>TT(S.b),it=()=>{const e=S.b.rutina[S.ej];return S.fase?e.castigo:e;};
   const live=()=>S.t1?S.acc+Date.now()-S.t1:S.acc;
   const cur=()=>{if(S.fase)return 0;const e=S.b.rutina[S.ej];return e.seg?Math.min(1,live()/(e.seg*1000)):S.rep;};
-  const W=()=>S.vueltas*T()+S.base+cur(),pts=()=>Math.round(W()/T()*1000)/10;
+  const W=()=>S.acum+S.base+cur(),pts=()=>Math.round(W()/T()*10000)/100;
   const el=()=>S.done?S.tiempo:(Date.now()-S.t0)/1000;
   const rid=()=>S.p.id+'_'+S.a.id+(S.k?'_'+S.k:'');
-  const guarda=()=>db.collection('resultados').doc(rid()).set({pruebaId:S.p.id,atletaId:S.a.id,bloque:S.k,tipo:S.b.tipo,nombre:S.a.nombre,cat:S.a.cat||'',reps:Math.round(W()*100)/100,pts:pts(),nulas:S.nulas,vueltas:S.vueltas,det:S.b.tipo==='amrap'?S.vueltas+' vueltas + '+Math.round((W()-S.vueltas*T())/T()*100)+'%':'',ej:S.ej,rep:S.rep,acc:S.acc,fase:S.fase,hold:S.hold,base:S.base,t0:S.t0,done:S.done,completo:S.completo,tiempo:S.tiempo,splits:S.splits,rompe:S.rompe,juez:S.juez||'',juezUid:user.uid,total:T(),upd:Date.now(),fin:S.fin||null}).catch(e=>alert('No se pudo guardar ('+e.code+'). Solo el juez que inició este conteo puede editarlo.'));
+  const guarda=()=>db.collection('resultados').doc(rid()).set({pruebaId:S.p.id,atletaId:S.a.id,bloque:S.k,tipo:S.b.tipo,nombre:S.a.nombre,cat:S.a.cat||'',reps:Math.round(W()*100)/100,pts:pts(),nulas:S.nulas,vueltas:S.vueltas,acum:S.acum,det:S.b.tipo==='amrap'?Math.floor(W()/T()+1e-9)+' vueltas + '+Math.round((W()/T()-Math.floor(W()/T()+1e-9))*100)+'%':'',ej:S.ej,rep:S.rep,acc:S.acc,fase:S.fase,hold:S.hold,base:S.base,t0:S.t0,done:S.done,completo:S.completo,tiempo:S.tiempo,splits:S.splits,rompe:S.rompe,juez:S.juez||'',juezUid:user.uid,total:T(),upd:Date.now(),fin:S.fin||null}).catch(e=>alert('No se pudo guardar ('+e.code+'). Solo el juez que inició este conteo puede editarlo.'));
   const snap=()=>({ej:S.ej,rep:S.rep,acc:S.acc,fase:S.fase,hold:S.hold,base:S.base,vueltas:S.vueltas,nulas:S.nulas,rompe:S.rompe,splits:S.splits.slice()});
   const opts=()=>{
     if(S)return;const sp=$('#sp'),sa=$('#sa');if(!sp)return;const a=sp.value,b=sa.value;
@@ -230,8 +246,8 @@ function juez(){
   const setup=()=>{$('#j').innerHTML=`<h2>Nuevo conteo</h2>${user.displayName?`<p>Juez: ${esc(user.displayName)}</p>`:'<input id="jn" placeholder="Tu nombre (juez)">'}<select id="sp"></select><select id="sa"></select><button id="pre">Preparar</button>`;opts();$('#pre').onclick=prep;};
   const load=(p,a,k,jn)=>{
     const r=D.r.find(x=>x.id===p.id+'_'+a.id+(k?'_'+k:''));
-    S={p,a,k,b:bl(p)[k],ej:0,rep:0,acc:0,fase:0,hold:0,base:0,vueltas:0,nulas:0,rompe:0,t0:null,t1:null,done:false,completo:false,tiempo:null,splits:[],hist:[],juez:jn,juezUid:user.uid,fin:null};
-    if(r)Object.assign(S,{ej:r.ej,rep:r.rep,acc:r.acc||0,fase:r.fase||0,hold:r.hold||0,base:r.base||0,vueltas:r.vueltas||0,nulas:r.nulas||0,rompe:r.rompe||0,t0:r.t0,done:r.done,completo:r.completo,tiempo:r.tiempo,splits:r.splits||[],juez:r.juez||jn,juezUid:r.juezUid||user.uid,fin:r.fin||null});
+    S={p,a,k,b:bl(p)[k],ej:0,rep:0,acc:0,fase:0,hold:0,base:0,vueltas:0,acum:0,last:Date.now(),aviso:0,nulas:0,rompe:0,t0:null,t1:null,done:false,completo:false,tiempo:null,splits:[],hist:[],juez:jn,juezUid:user.uid,fin:null};
+    if(r)Object.assign(S,{ej:r.ej,rep:r.rep,acc:r.acc||0,fase:r.fase||0,hold:r.hold||0,base:r.base||0,vueltas:r.vueltas||0,acum:r.acum??(r.vueltas||0)*TT(S.b),nulas:r.nulas||0,rompe:r.rompe||0,t0:r.t0,done:r.done,completo:r.completo,tiempo:r.tiempo,splits:r.splits||[],juez:r.juez||jn,juezUid:r.juezUid||user.uid,fin:r.fin||null});
     pinta();if(S.t0&&!S.done)corre();
   };
   const prep=()=>{
@@ -250,8 +266,8 @@ function juez(){
   const back=()=>{const m=S.b.rutina[S.ej];S.fase=0;S.rep=m.seg?0:S.hold;S.acc=m.seg?S.hold:0;};
   const adv=w=>{
     S.base+=w;if(S.b.tipo!=='amrap')S.splits.push(Math.round(el()*10)/10);
-    S.rep=0;S.acc=0;S.hold=0;S.fase=0;S.ej++;
-    if(S.ej>=S.b.rutina.length){if(S.b.tipo==='amrap'){S.vueltas++;S.ej=0;S.base=0;}else{S.ej--;return fin(true,el());}}
+    S.rep=0;S.acc=0;S.hold=0;S.fase=0;S.last=Date.now();S.ej++;
+    if(S.ej>=S.b.rutina.length){if(S.b.tipo==='amrap'){S.acum+=S.base;S.vueltas++;S.ej=0;S.base=0;}else{S.ej--;return fin(true,el());}}
     guarda();pinta();
   };
   const isoStop=auto=>{
@@ -263,13 +279,14 @@ function juez(){
     if(e.castigo){S.hold=S.acc;S.fase=1;S.rep=0;S.acc=0;guarda();pinta();}else{guarda();pinta();}
   };
   const toque=()=>{
-    if(S.done)return;navigator.vibrate?.(25);S.hist.push(snap());S.rep++;const e=it();
+    if(S.done)return;navigator.vibrate?.(25);S.last=Date.now();S.aviso=0;S.hist.push(snap());S.rep++;const e=it();
     if(S.rep>=e.reps){if(S.fase){back();guarda();pinta();}else adv(e.reps);}
     else{guarda();pinta();}
   };
   const tick=()=>{
     if(!S||!S.t0||S.done)return;const t=el(),b=S.b;
     if(b.tipo!=='libre'&&t>=b.cap)return fin(false,b.cap);
+    if(b.tipo==='amrap'&&b.mueve&&!S.fase&&!S.t1){const e0=b.rutina[S.ej];if(e0&&e0.reps){const left=b.mueve-(Date.now()-S.last)/1000,z=$('#st');if(z)z.textContent='Sin repetir: '+Math.max(0,Math.ceil(left))+' s';if(left<=0){S.hist.push(snap());S.aviso=1;navigator.vibrate?.([80,40,80]);return adv(S.rep);}}}
     const x=$('#tm');if(x)x.textContent=b.tipo==='libre'?fmt(t):fmt(Math.ceil(b.cap-t));
     const e=it();
     if(e&&e.seg){
@@ -281,9 +298,9 @@ function juez(){
     const w=W(),amr=S.b.tipo==='amrap';let acc=0,prev=0;
     const filas=amr?'':S.b.rutina.map((e,i)=>{const u=e.reps||1,h=Math.max(0,Math.min(u,w-acc));acc+=u;const t=S.splits[i];const dt=t!=null?fmtD(t-prev):'—';if(t!=null)prev=t;
       return `<tr><td>${esc(e.nombre)}</td><td>${e.seg?fmtD(h*e.seg)+' / '+fmtS(e.seg):fr(h)+'/'+e.reps}</td><td>${dt}</td></tr>`;}).join('');
-    const vi=Math.round((w-S.vueltas*T())/T()*100);
+    const vc=Math.floor(w/T()+1e-9),vi=Math.round((w/T()-vc)*100);
     return `<div class="sum"><span class="badge${S.completo?'':' cap'}">${S.completo?'Rutina completa':'Time cap / terminada'}</span><div class="perfil">${av(S.a.foto,'lg')}<div><h3>${esc(S.a.nombre)}</h3><p class="sub">${esc(S.a.cat||'Sin categoría')} · ${esc(S.p.nombre)} · Bloque ${S.k+1}/${nb()} (${TN[S.b.tipo]})<br>Juez: ${av(((D.j||[]).find(x=>x.id===S.juezUid)||{}).foto)}${esc(S.juez||'—')}${S.fin?' · '+new Date(S.fin).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}):''}</p></div></div>
-    <div class="kp"><div class="big"><b>${pts()}</b><span>puntaje (100 = una rutina completa)</span></div><div><b>${amr?S.vueltas:fr(w)+'/'+T()}</b><span>${amr?'vueltas completas':'repeticiones'}</span></div><div><b>${S.nulas}</b><span>nulas</span></div><div><b>${fmtD(S.tiempo)}</b><span>tiempo total</span></div><div><b>${amr?vi+'%':S.rompe}</b><span>${amr?'de la vuelta en curso':'rupturas'}</span></div></div>
+    <div class="kp"><div class="big"><b>${pts()}</b><span>puntaje (100 = una rutina completa)</span></div><div><b>${amr?vc:fr(w)+'/'+T()}</b><span>${amr?'vueltas completas':'repeticiones'}</span></div><div><b>${S.nulas}</b><span>nulas</span></div><div><b>${fmtD(S.tiempo)}</b><span>tiempo total</span></div><div><b>${amr?vi+'%':S.rompe}</b><span>${amr?'de la vuelta en curso':'rupturas'}</span></div></div>
     ${amr?'':`<table><tr><th>Ejercicio</th><th>Logrado</th><th>Tiempo</th></tr>${filas}</table>`}</div><div class="row"><button id="imp" class="sec">Imprimir / PDF</button>${S.k+1<nb()?'<button id="sig">Siguiente bloque</button>':''}<button id="otro">Otro atleta</button></div>`;
   };
   const pinta=()=>{
@@ -292,7 +309,7 @@ function juez(){
     else if(!S.t0)h+=`<p>${S.b.rutina.map(e=>esc(e.nombre)+' '+(e.reps||fmtS(e.seg))).join(' · ')}</p><p>${TN[S.b.tipo]}${S.b.cap?' · '+fmt(S.b.cap):''}</p><button id="ini" class="tap" style="font-size:44px">Iniciar</button>`;
     else{
       const e=it();
-      h+=`${S.b.tipo==='amrap'?`<div class="vta">Vuelta ${S.vueltas+1}</div>`:''}${S.fase?'<span class="badge cap">Castigo</span>':''}<div class="ej">${esc(e.nombre)} ${e.reps?'':fmtS(e.seg)}</div><div class="meta"><span class="tm" id="tm"></span><span>${fr(W())}/${T()}</span></div>`;
+      h+=`${S.b.tipo==='amrap'?`<div class="vta">Vuelta ${S.vueltas+1}</div>`:''}${S.fase?'<span class="badge cap">Castigo</span>':''}${S.aviso?'<span class="badge cap">Pasó al siguiente por tiempo sin repetir</span>':''}${S.b.mueve&&!S.fase?'<div id="st" class="sub"></div>':''}<div class="ej">${esc(e.nombre)} ${e.reps?'':fmtS(e.seg)}</div><div class="meta"><span class="tm" id="tm"></span><span>${fr(W())}/${T()}</span></div>`;
       h+=e.seg?`<button id="iso" class="tap iso"><span id="isot"></span><small id="isol"></small></button>`:`<button id="tap" class="tap">${S.rep}<small>de ${e.reps}</small></button>`;
       h+=`<div class="row ctl"><button id="nu" class="nula">Nula (${S.nulas})</button>${!S.fase&&e.reps&&e.castigo?'<button id="ro" style="background:#b26a00">Rompió</button>':''}<button id="un" class="sec">Deshacer</button>${S.fase?'':'<button id="sk" class="sec">Saltar</button>'}<button id="te" class="sec">Terminar</button></div>`;
     }
@@ -301,7 +318,7 @@ function juez(){
     q('#otro',()=>{S=null;setup();});
     q('#sig',()=>load(S.p,S.a,S.k+1,S.juez));
     q('#imp',()=>print());
-    q('#ini',()=>{S.t0=Date.now();guarda();corre();pinta();});
+    q('#ini',()=>{S.t0=S.last=Date.now();guarda();corre();pinta();});
     q('#tap',toque);
     q('#iso',()=>{if(S.t1)isoStop(false);else{S.t1=Date.now();pinta();}});
     q('#nu',()=>{S.hist.push(snap());S.nulas++;guarda();pinta();});
