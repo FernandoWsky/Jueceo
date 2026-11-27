@@ -113,3 +113,18 @@ body.calm *{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(min-width:760px){.wrap{max-width:980px}.kp{grid-template-columns:repeat(4,1fr)}.tap{min-height:42vh}.pod{max-width:640px;margin-left:auto;margin-right:auto}td,th{padding:12px 14px}}
 @media print{header,button,#net{display:none}.wrap{animation:none}}
+
+[hidden]{display:none!important}
+button:disabled{opacity:.55;pointer-events:none}
+.tap,.nula{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+details.ad{margin:10px 0;padding:0 14px;background:#fff;border:1px solid var(--line);border-radius:16px}
+details.ad>summary{display:block;cursor:pointer;list-style:none}
+details.ad>summary::-webkit-details-marker{display:none}
+details.ad>summary h2{margin:0;padding:14px 0}
+details.ad>summary h2::after{content:'';margin-left:auto;padding:4px;border:solid var(--mut);border-width:0 2px 2px 0;transform:rotate(45deg);transition:transform .2s}
+details.ad[open]>summary h2::after{transform:rotate(-135deg)}
+.ab{padding:0 0 14px}
+.fp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0}
+.fp label.file{flex:1;margin:0}
+.fp .qf{width:auto;margin:0}
+label.file.ok{color:#fff;background:var(--g-wine);border:1px solid transparent}

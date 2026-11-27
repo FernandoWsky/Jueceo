@@ -14,6 +14,8 @@ const TN={cap:'Time Cap',amrap:'AMRAP',libre:'Sin tiempo'};
 const bl=p=>p.bloques||[{tipo:'cap',cap:p.cap,rutina:p.rutina}];
 const TT=b=>b.rutina.reduce((s,e)=>s+(e.reps||1),0);
 const ptsR=(r,p)=>r.pts??Math.round(r.reps/(r.total||TT(bl(p)[r.bloque||0]))*10000)/100;
+const modo=p=>p.pun||'reps',uni=p=>modo(p)==='pct'?'pts':'reps';
+const val=(r,p)=>modo(p)==='pct'?ptsR(r,p):Math.round((r.reps||0)*100)/100;
 const fmtS=s=>s>=60&&s%60===0?s/60+'min':s+'s';
 const fmtMs=ms=>Math.floor(ms/60000)+':'+String(Math.floor(ms%60000/1000)).padStart(2,'0')+'.'+String(Math.floor(ms%1000)).padStart(3,'0');
 const fr=x=>Math.round(x*10)/10;
@@ -28,6 +30,8 @@ const aplicaPref=()=>{try{localStorage.setItem('jc',JSON.stringify(pref));}catch
 document.body.classList.toggle('calm',!!pref.c);
 let ac;const beep=(f,d)=>{if(!pref.s)return;try{const A=window.AudioContext||window.webkitAudioContext;ac=ac||new A();ac.resume&&ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.07;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);}catch(e){}};
 const vib=p=>{if(pref.v&&navigator.vibrate)navigator.vibrate(p);};
+const fpHTML=()=>`<div class="fp"><img class="av lg" alt="" hidden><label class="file"><span>Elegir foto</span><input type="file" accept="image/*"></label><button type="button" class="sec qf" hidden>Quitar foto</button></div>`;
+const fpSet=(c,v)=>{c.dataset.v=v||'';const i=c.querySelector('img'),l=c.querySelector('label'),b=c.querySelector('.qf');i.hidden=!v;if(v)i.src=v;l.classList.toggle('ok',!!v);l.querySelector('span').textContent=v?'Foto lista · tocar para cambiar':'Elegir foto';b.hidden=!v;if(!v)c.querySelector('input').value='';};
 const IC={trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
 users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
 timer:'<path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/>',
@@ -51,7 +55,7 @@ const bloqueSum=(r,p)=>{
   let acc=0,prev=0;
   const filas=amr?'':b.rutina.map((e,i)=>{const u=e.reps||1,h=Math.max(0,Math.min(u,w-acc));acc+=u;const t=(r.splits||[])[i];const dt=t!=null?fmtD(t-prev):'—';if(t!=null)prev=t;
     return `<tr><td>${esc(e.nombre)}</td><td>${e.seg?fmtD(h*e.seg)+' / '+fmtS(e.seg):fr(h)+'/'+e.reps}</td><td>${dt}</td></tr>`;}).join('');
-  return `<section class="bk"><div class="bh"><span class="tag">Bloque ${k+1} · ${TN[b.tipo]}${b.cap?' · '+fmt(b.cap):''}</span><b class="sc">${ptsR(r,p)}<small>pts</small></b></div>
+  return `<section class="bk"><div class="bh"><span class="tag">Bloque ${k+1} · ${TN[b.tipo]}${b.cap?' · '+fmt(b.cap):''}</span><b class="sc">${val(r,p)}<small>${uni(p)}</small></b></div>
   <p class="rt">${b.rutina.map(e=>esc(ser(e))).join(' · ')}</p>
   <div class="kp"><div><b>${amr?vc+' + '+vi+'%':fr(w)+'/'+T_}</b><span>${amr?'vueltas':'repeticiones'}</span></div><div><b>${r.nulas||0}</b><span>nulas</span></div><div><b>${fmtD(r.tiempo||0)}</b><span>tiempo</span></div><div><b>${r.rompe||0}</b><span>rupturas</span></div></div>
   ${amr?'':`<div class="tw"><table><tr><th>Ejercicio</th><th>Logrado</th><th>Tiempo</th></tr>${filas}</table></div>`}
@@ -60,18 +64,19 @@ const bloqueSum=(r,p)=>{
 const nav=()=>{const h=location.hash||'#/',L=[['#/publico','trophy','Ranking'],['#/atletas','users','Atletas']];
   if(user){L.push(['#/juez','timer','Juzgar'],['#/perfil','user','Perfil']);if(isAdmin())L.push(['#/admin','sliders','Admin']);L.push(['#','out','Salir','out']);}else L.push(['#/login','in','Entrar']);
   return `<header><a href="#/" class="br">Jueceo</a><nav>${L.map(x=>`<a href="${x[0]}"${x[3]?' id="out"':''}${x[0]===h||(h==='#/'&&!user&&x[0]==='#/publico')?' class="on"':''}>${ic(x[1])}<span>${x[2]}</span></a>`).join('')}</nav></header>`;};
-const li=(t,s,c,id,ed)=>`<li><span>${esc(t)}<small>${esc(s)}</small></span><span>${ed?`<button class="del" style="color:var(--blue)" data-ed="${id}">Editar</button>`:''}<button class="del" data-c="${c}" data-id="${id}">Borrar</button></span></li>`;
-document.addEventListener('change',e=>{const t=e.target;if(t.type==='file'){const sp=t.closest('label');const x=sp&&sp.querySelector('span');if(x)x.textContent=t.files[0]?'Foto seleccionada':'Elegir foto';}});
+const li=(t,s,c,id,ed)=>`<li><span>${esc(t)}<small>${esc(s)}</small></span><span>${ed?`<button class="del" style="color:var(--ink)" data-ed="${id}">Editar</button>`:''}<button class="del" data-c="${c}" data-id="${id}">Borrar</button></span></li>`;
+document.addEventListener('change',e=>{const t=e.target;if(t.type!=='file')return;const c=t.closest('.fp'),f=t.files[0];if(!c||!f)return;foto(f).then(v=>fpSet(c,v)).catch(()=>alert('No pude leer la foto'));});
 document.addEventListener('click',e=>{
   if(e.target.closest('#out')){e.preventDefault();auth.signOut();}
+  const qf=e.target.closest('.qf');if(qf){fpSet(qf.closest('.fp'),'');return;}
   const d=e.target.dataset;
   if(d&&d.c&&confirm('¿Borrar?'))db.collection(d.c).doc(d.id).delete();
 });
 
 function datos(cb){
-  const D={p:[],a:[],r:[],j:[]};
+  const D={p:[],a:[],r:[],j:[],ok:{}};
   [['pruebas','p'],['atletas','a'],['resultados','r'],['jueces','j']].forEach(([c,k])=>unsub.push(db.collection(c).onSnapshot(s=>{
-    D[k]=s.docs.map(d=>({id:d.id,...d.data()}));
+    D[k]=s.docs.map(d=>({id:d.id,...d.data()}));D.ok[k]=1;
     D.p.sort((x,y)=>x.creado-y.creado);D.a.sort((x,y)=>x.nombre.localeCompare(y.nombre));cb(D);
   })));
   return D;
@@ -99,54 +104,60 @@ function login(){
 }
 
 function admin(){
-  let ed=null,DD;
-  app.innerHTML=nav()+`<div class="wrap">
-  <h2>Atletas</h2>
-  <form id="fa"><div class="row"><input name="n" placeholder="Nombre" required><input name="c" placeholder="Categoría (ej. Varonil)"></div><div class="row"><input name="l" placeholder="De dónde es"><input name="g" placeholder="Club / gym"><input name="e" type="number" min="1" placeholder="Edad"></div><textarea name="d" rows="2" placeholder="Descripción (opcional)"></textarea><label class="file">${ic('plus')}<span>Elegir foto</span><input name="f" type="file" accept="image/*"></label><button>Guardar atleta</button><button type="button" id="cxa" class="sec" hidden>Cancelar edición</button></form>
-  <ul id="la"></ul>
-  <h2>Jueces</h2><ul id="lj"></ul>
-  <h2>Resultados</h2><ul id="lr"></ul>
-  <h2 id="ht">Nueva prueba</h2>
-  <form id="fp"><input name="n" placeholder="Nombre de la prueba" required><div id="bl"></div>
-  <button type="button" id="ab" class="sec">+ Agregar bloque</button><button>Guardar prueba</button><button type="button" id="cx" class="sec" hidden>Cancelar edición</button></form>
-  <ul id="lp"></ul></div>`;
+  let ed=null,eda=null,edj=null,DD=null,rc=null;
+  const sec=(id,t,b)=>`<details class="ad" id="${id}"><summary><h2>${t}</h2></summary><div class="ab">${b}</div></details>`;
+  app.innerHTML=nav()+`<div class="wrap">`
+   +sec('sa','Atletas',`<form id="fa"><div class="row"><input name="n" placeholder="Nombre" required><select name="c" id="ac"></select></div><input name="c2" placeholder="Nombre de la nueva categoría" hidden><div class="row"><input name="l" placeholder="De dónde es"><input name="g" placeholder="Club / gym"><input name="e" type="number" min="1" placeholder="Edad"></div><textarea name="d" rows="2" placeholder="Descripción (opcional)"></textarea>${fpHTML()}<button id="gat">Guardar atleta</button></form><ul id="la"></ul>`)
+   +sec('sp','Pruebas',`<form id="fp"><input name="n" placeholder="Nombre de la prueba" required><select name="pun"><option value="reps">Puntuación por repeticiones (1 punto por repetición)</option><option value="pct">Puntuación por porcentaje (100 = rutina completa)</option></select><div id="bl"></div><button type="button" id="ab" class="sec">${ic('plus')}Agregar bloque</button><button id="gpr">Guardar prueba</button></form><ul id="lp"></ul>`)
+   +sec('sr','Resultados',`<div class="chips" id="rch"></div><ul id="lr"></ul>`)
+   +sec('sj','Jueces',`<form id="fj" hidden><input name="n" placeholder="Nombre del juez" required>${fpHTML()}<button>Guardar juez</button></form><ul id="lj"></ul><p class="sub">Borrar quita el perfil (nombre y foto). Para quitarle el acceso, elimina su usuario en Firebase, sección Authentication.</p>`)+`</div>`;
   const addB=b=>{const d=document.createElement('div');d.className='blq';
-    d.innerHTML=`<div class="row"><select class="tp"><option value="cap">Time Cap</option><option value="amrap">AMRAP</option><option value="libre">Sin tiempo</option></select><input class="cp" type="number" min="0.5" step="0.5" placeholder="Minutos"></div><input class="mv" type="number" min="1" placeholder="Opcional (AMRAP): segundos sin hacer una rep para pasar al siguiente ejercicio"><textarea rows="5" placeholder="Un ejercicio por línea:&#10;Sentadillas 20&#10;Handstand 30s | Burpees 5"></textarea><button type="button" class="del">Quitar bloque</button>`;
+    d.innerHTML=`<div class="row"><select class="tp"><option value="cap">Time Cap</option><option value="amrap">AMRAP</option><option value="libre">Sin tiempo</option></select><input class="cp" type="number" min="0.5" step="0.5" placeholder="Minutos"></div><input class="mv" type="number" min="1" placeholder="Opcional (AMRAP): segundos sin hacer una rep para pasar al siguiente ejercicio"><textarea rows="5" placeholder="Un ejercicio por línea:&#10;Sentadillas 20&#10;Handstand 30s / Burpees 5"></textarea><button type="button" class="del">Quitar bloque</button>`;
     const tp=d.querySelector('.tp'),cp=d.querySelector('.cp'),mv=d.querySelector('.mv'),sh=()=>{cp.hidden=tp.value==='libre';mv.hidden=tp.value!=='amrap';};
     tp.onchange=sh;d.querySelector('.del').onclick=()=>{if($('#bl').children.length>1)d.remove();};
     if(b){tp.value=b.tipo;cp.value=b.cap?b.cap/60:'';mv.value=b.mueve||'';d.querySelector('textarea').value=b.rutina.map(ser).join('\n');}
     sh();$('#bl').appendChild(d);};
-  const reset=()=>{ed=null;$('#fp').n.value='';$('#bl').innerHTML='';addB();$('#ht').textContent='Nueva prueba';$('#cx').hidden=true;};
-  reset();
-  $('#ab').onclick=()=>addB();$('#cx').onclick=reset;
+  const rsA=()=>{eda=null;const f=$('#fa');f.reset();f.c2.hidden=true;fpSet($('#fa .fp'),'');$('#gat').textContent='Guardar atleta';};
+  const rsP=()=>{ed=null;const f=$('#fp');f.n.value='';f.pun.value='reps';$('#bl').innerHTML='';addB();$('#gpr').textContent='Guardar prueba';};
+  const rsJ=()=>{edj=null;$('#fj').hidden=true;};
+  rsP();
+  document.querySelectorAll('.ad').forEach(d=>d.addEventListener('toggle',()=>{if(!d.open){const f={sa:rsA,sp:rsP,sj:rsJ}[d.id];if(f)f();}}));
+  const drawR=D=>{
+    const rcs=[...new Set(D.a.map(a=>a.cat||'Sin categoría'))].sort();
+    if(rc===null&&D.ok.a)rc=rcs[0]||'';else if(rc&&!rcs.includes(rc))rc='';
+    $('#rch').innerHTML=`<button class="chip${!rc?' on':''}" data-rc="">Todas</button>`+rcs.map(c=>`<button class="chip${c===rc?' on':''}" data-rc="${esc(c)}">${esc(c)}</button>`).join('');
+    const cc=r=>(D.a.find(a=>a.id===r.atletaId)||{}).cat||'Sin categoría';
+    $('#lr').innerHTML=D.r.filter(r=>!rc||cc(r)===rc).map(r=>{const p=D.p.find(x=>x.id===r.pruebaId);return li(r.nombre+' · '+(p?p.nombre:'?')+' (bloque '+((r.bloque||0)+1)+')',(p?val(r,p)+' '+uni(p):'')+' · '+(r.juez||'sin juez')+(r.done?'':' · en curso'),'resultados',r.id);}).join('')||'<li>Sin resultados</li>';
+  };
   DD=datos(D=>{
+    const cs=[...new Set(D.a.map(a=>a.cat).filter(Boolean))].sort(),np=D.p.map(p=>p.nombre).filter(n=>!cs.includes(n)),ac=$('#ac'),cur=ac.value;
+    ac.innerHTML=`<option value="">Sin categoría</option>${cs.length?`<optgroup label="Categorías existentes">${cs.map(c=>`<option>${esc(c)}</option>`).join('')}</optgroup>`:''}${np.length?`<optgroup label="Nombres de pruebas">${np.map(c=>`<option>${esc(c)}</option>`).join('')}</optgroup>`:''}<option value="__n">+ Nueva categoría…</option>`;
+    if([...ac.options].some(o=>o.value===cur))ac.value=cur;
     $('#la').innerHTML=D.a.map(a=>li(a.nombre,[a.cat,a.club,a.lugar].filter(Boolean).join(' · ')||'Sin datos','atletas',a.id,1)).join('')||'<li>Aún no hay atletas</li>';
-    $('#lj').innerHTML=D.j.map(j=>`<li><span>${av(j.foto)}${esc(j.nombre)}</span></li>`).join('')||'<li>Aún no hay perfiles de jueces</li>';
-    $('#lr').innerHTML=D.r.map(r=>li(r.nombre+' · '+((D.p.find(p=>p.id===r.pruebaId)||{}).nombre||'?')+' (bloque '+((r.bloque||0)+1)+')',(r.pts??'')+' pts · '+(r.juez||'sin juez'),'resultados',r.id)).join('')||'<li>Sin resultados</li>';
-    $('#lp').innerHTML=D.p.map(p=>li(p.nombre,bl(p).map(b=>TN[b.tipo]+(b.cap?' '+fmt(b.cap):'')+': '+b.rutina.map(e=>e.nombre+' '+(e.reps||fmtS(e.seg))).join(', ')).join(' | '),'pruebas',p.id,1)).join('')||'<li>Aún no hay pruebas</li>';
+    $('#lp').innerHTML=D.p.map(p=>li(p.nombre,(p.pun==='pct'?'Porcentaje · ':'Repeticiones · ')+bl(p).map(b=>TN[b.tipo]+(b.cap?' '+fmt(b.cap):'')+': '+b.rutina.map(e=>e.nombre+' '+(e.reps||fmtS(e.seg))).join(', ')).join(' | '),'pruebas',p.id,1)).join('')||'<li>Aún no hay pruebas</li>';
+    $('#lj').innerHTML=D.j.map(j=>`<li><span class="nm">${av(j.foto)}<b>${esc(j.nombre)}</b></span><span><button class="del" data-edj="${j.id}">Editar</button><button class="del" data-c="jueces" data-id="${j.id}">Borrar</button></span></li>`).join('')||'<li>Aún no hay perfiles de jueces</li>';
+    drawR(D);
   });
-  $('#lp').onclick=e=>{const id=e.target.dataset.ed;if(!id)return;const p=DD.p.find(x=>x.id===id);ed=id;
-    $('#fp').n.value=p.nombre;$('#bl').innerHTML='';bl(p).forEach(addB);$('#ht').textContent='Editando: '+p.nombre;$('#cx').hidden=false;scrollTo(0,$('#ht').offsetTop);};
-  let eda=null,fa0='';
-  $('#fa').onsubmit=async e=>{e.preventDefault();const f=e.target,fl=f.f.files[0];
-    const x={nombre:f.n.value.trim(),cat:f.c.value.trim(),lugar:f.l.value.trim(),club:f.g.value.trim(),edad:f.e.value?+f.e.value:null,desc:f.d.value.trim(),foto:fl?await foto(fl).catch(()=>{alert('No pude leer la foto');return fa0;}):fa0};
-    if(eda)db.collection('atletas').doc(eda).set(x,{merge:true});else db.collection('atletas').add(x);
-    eda=null;fa0='';f.reset();$('#cxa').hidden=true;};
-  $('#cxa').onclick=()=>{eda=null;fa0='';$('#fa').reset();$('#cxa').hidden=true;};
-  $('#la').onclick=e=>{const id=e.target.dataset.ed;if(!id)return;const a=DD.a.find(x=>x.id===id),f=$('#fa');eda=id;fa0=a.foto||'';
-    f.n.value=a.nombre;f.c.value=a.cat||'';f.l.value=a.lugar||'';f.g.value=a.club||'';f.e.value=a.edad||'';f.d.value=a.desc||'';$('#cxa').hidden=false;scrollTo(0,0);};
+  $('#ac').onchange=()=>{$('#fa').c2.hidden=$('#ac').value!=='__n';};
+  $('#ab').onclick=()=>addB();
+  $('#rch').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;rc=b.dataset.rc;drawR(DD);};
+  $('#la').onclick=e=>{const id=e.target.dataset.ed;if(!id)return;const a=DD.a.find(x=>x.id===id),f=$('#fa');eda=id;f.n.value=a.nombre;$('#ac').value=a.cat||'';f.c2.hidden=true;f.l.value=a.lugar||'';f.g.value=a.club||'';f.e.value=a.edad||'';f.d.value=a.desc||'';fpSet($('#fa .fp'),a.foto||'');$('#gat').textContent='Guardar cambios de '+a.nombre;scrollTo(0,$('#sa').offsetTop);};
+  $('#lp').onclick=e=>{const id=e.target.dataset.ed;if(!id)return;const p=DD.p.find(x=>x.id===id),f=$('#fp');ed=id;f.n.value=p.nombre;f.pun.value=p.pun||'reps';$('#bl').innerHTML='';bl(p).forEach(addB);$('#gpr').textContent='Guardar cambios de '+p.nombre;scrollTo(0,$('#sp').offsetTop);};
+  $('#lj').onclick=e=>{const id=e.target.dataset.edj;if(!id)return;const j=DD.j.find(x=>x.id===id),f=$('#fj');edj=id;f.hidden=false;f.n.value=j.nombre;fpSet($('#fj .fp'),j.foto||'');};
+  $('#fa').onsubmit=e=>{e.preventDefault();const f=e.target,c=f.c.value==='__n'?f.c2.value.trim():f.c.value;
+    const x={nombre:f.n.value.trim(),cat:c,lugar:f.l.value.trim(),club:f.g.value.trim(),edad:f.e.value?+f.e.value:null,desc:f.d.value.trim(),foto:$('#fa .fp').dataset.v||''};
+    if(eda)db.collection('atletas').doc(eda).set(x,{merge:true});else db.collection('atletas').add(x);rsA();};
+  $('#fj').onsubmit=e=>{e.preventDefault();db.collection('jueces').doc(edj).set({nombre:e.target.n.value.trim(),foto:$('#fj .fp').dataset.v||''},{merge:true});rsJ();};
   $('#fp').onsubmit=e=>{e.preventDefault();const bs=[];
     for(const d of $('#bl').children){const tipo=d.querySelector('.tp').value,cap=Math.round((+d.querySelector('.cp').value||0)*60);
       const ls=d.querySelector('textarea').value.split('\n').map(x=>x.trim()).filter(Boolean),rutina=ls.map(pr);
       if(rutina.includes(null))return alert('No entendí esta línea: '+ls[rutina.indexOf(null)]);
       if(!rutina.length||(tipo!=='libre'&&!cap))return alert('Cada bloque necesita ejercicios y, si es Time Cap o AMRAP, los minutos.');
       bs.push({tipo,cap:tipo==='libre'?0:cap,rutina,mueve:tipo==='amrap'?(+d.querySelector('.mv').value||0):0});}
-    const dato={nombre:e.target.n.value.trim(),bloques:bs};
+    const dato={nombre:e.target.n.value.trim(),pun:e.target.pun.value,bloques:bs};
     if(ed)db.collection('pruebas').doc(ed).set(dato,{merge:true});else db.collection('pruebas').add({...dato,creado:Date.now()});
-    reset();};
+    rsP();};
 }
-
-
 function publico(){
   let sel='total',cat=null,sig='',DD=null,an=1;
   app.innerHTML=nav()+`<div class="wrap"><div id="f"></div><div id="t"></div></div>`;
@@ -156,12 +167,12 @@ function publico(){
     const ps=sel==='total'?D.p:D.p.filter(p=>p.id===sel),m={};
     ps.forEach((p,pi)=>D.r.filter(r=>r.pruebaId===p.id&&(!cat||cc(r.atletaId)===cat)).forEach(r=>{
       const o=m[r.atletaId]=m[r.atletaId]||{id:r.atletaId,n:A(r.atletaId).nombre||r.nombre,s:0,t:0,nu:0,k:0,d:[],pt:[]};
-      const v=ptsR(r,p);o.s+=v;o.t+=r.tiempo||0;o.nu+=r.nulas||0;if(r.done)o.k++;if(r.det)o.d.push(r.det);o.pt.push([pi*100+(r.bloque||0),v]);}));
-    const nb=ps.reduce((s,p)=>s+bl(p).length,0);
+      const v=val(r,p);o.s+=v;o.t+=r.tiempo||0;o.nu+=r.nulas||0;if(r.done)o.k++;if(r.det)o.d.push(r.det);o.pt.push([pi*100+(r.bloque||0),v]);}));
+    const nb=ps.reduce((s,p)=>s+bl(p).length,0),us=[...new Set(ps.map(uni))],u=us.length===1?us[0]:'pts';
     const rows=Object.values(m).map(o=>({...o,s:Math.round(o.s*100)/100,t:Math.round(o.t*10)/10})).sort((a,b)=>b.s-a.s||a.t-b.t);
     const pos=[];rows.forEach((o,i)=>pos.push(!i||o.s!==rows[i-1].s||o.t!==rows[i-1].t?i+1:pos[i-1]));
-    const pod=rows.length?`<div class="pod">${[1,0,2].filter(i=>rows[i]).map(i=>{const o=rows[i];return `<a class="pd p${Math.min(pos[i],3)}" href="#/atleta/${o.id}"><span class="pos">${pos[i]}</span>${av(A(o.id).foto)}<div class="n">${esc(o.n)}</div><div class="s">${o.s}</div><div class="m">puntos</div></a>`;}).join('')}</div>`:'<p class="sub">Aún no hay resultados en esta categoría.</p>';
-    const h='<tr><th>#</th><th>Atleta</th><th>Puntaje</th><th>Bloques</th><th>Tiempo</th><th>Nulas</th></tr>'+rows.map((o,i)=>{
+    const pod=rows.length?`<div class="pod">${[1,0,2].filter(i=>rows[i]).map(i=>{const o=rows[i];return `<a class="pd p${Math.min(pos[i],3)}" href="#/atleta/${o.id}"><span class="pos">${pos[i]}</span>${av(A(o.id).foto)}<div class="n">${esc(o.n)}</div><div class="s">${o.s}</div><div class="m">${u}</div></a>`;}).join('')}</div>`:'<p class="sub">Aún no hay resultados en esta categoría.</p>';
+    const h=`<tr><th>#</th><th>Atleta</th><th>Puntaje (${u})</th><th>Bloques</th><th>Tiempo</th><th>Nulas</th></tr>`+rows.map((o,i)=>{
       const par=o.pt.sort((x,y)=>x[0]-y[0]).map(x=>Math.round(x[1]*100)/100);
       return `<tr style="animation-delay:${i*35}ms"><td><span class="rk">${pos[i]}</span></td><td>${av(A(o.id).foto)}<a href="#/atleta/${o.id}">${esc(o.n)}</a><small class="d">${esc(o.d.join(' · '))}</small></td><td><b>${o.s}</b>${par.length>1?`<small class="d">${par.join(' + ')}</small>`:''}</td><td>${o.k}/${nb}</td><td>${fmtD(o.t)}</td><td>${o.nu}</td></tr>`;}).join('');
     $('#t').innerHTML=pod+(rows.length?`<div class="tw"><table class="${an?'an':''}">${h}</table></div>`:'');an=0;
@@ -198,6 +209,7 @@ function juez(){
     sp.innerHTML=D.p.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
     sa.innerHTML=D.a.map(x=>`<option value="${x.id}">${esc(x.nombre)} · ${esc(x.cat||'Sin categoría')}</option>`).join('');
     if([...sp.options].some(o=>o.value===a))sp.value=a;if([...sa.options].some(o=>o.value===b))sa.value=b;
+    const pb=$('#pre');if(pb){const ok=D.ok.p&&D.ok.a&&D.ok.r;pb.disabled=!ok;pb.textContent=ok?'Preparar':'Cargando datos…';}
   };
   const tgl=()=>`<div class="tg"><button class="sec${pref.v?' on':''}" data-p="v">${ic('phone')}Vibración</button><button class="sec${pref.s?' on':''}" data-p="s">${ic('volume')}Sonido</button><button class="sec${pref.c?' on':''}" data-p="c">Menos animaciones</button></div>${navigator.vibrate?'':'<p class="sub">Este dispositivo no permite vibración.</p>'}`;
   const setup=()=>{$('#j').innerHTML=`<h2>Nuevo conteo</h2>${user.displayName?`<p class="sub">Juez: ${esc(user.displayName)}</p>`:'<input id="jn" placeholder="Tu nombre (juez)">'}<select id="sp"></select><select id="sa"></select><button id="pre">Preparar</button><h3 class="gt">Ajustes</h3>${tgl()}`;opts();$('#pre').onclick=prep;
@@ -206,6 +218,11 @@ function juez(){
     const r=D.r.find(x=>x.id===p.id+'_'+a.id+(k?'_'+k:''));
     S={p,a,k,b:bl(p)[k],ej:0,rep:0,acc:0,fase:0,hold:0,base:0,vueltas:0,acum:0,last:Date.now(),aviso:0,nulas:0,rompe:0,t0:null,t1:null,done:false,completo:false,tiempo:null,splits:[],hist:[],juez:jn,juezUid:user.uid,fin:null};
     if(r)Object.assign(S,{ej:r.ej,rep:r.rep,acc:r.acc||0,fase:r.fase||0,hold:r.hold||0,base:r.base||0,vueltas:r.vueltas||0,acum:r.acum??(r.vueltas||0)*TT(S.b),nulas:r.nulas||0,rompe:r.rompe||0,t0:r.t0,done:r.done,completo:r.completo,tiempo:r.tiempo,splits:r.splits||[],juez:r.juez||jn,juezUid:r.juezUid||user.uid,fin:r.fin||null});
+    if(r&&!r.done&&r.t0&&Date.now()-(r.upd||0)>10000){
+      if(confirm('Este bloque quedó en curso ('+fr(r.reps||0)+' reps).\nAceptar = continuar donde quedó (no cuenta el tiempo que estuvo fuera).\nCancelar = empezar este bloque de cero.'))S.t0+=Date.now()-r.upd;
+      else Object.assign(S,{ej:0,rep:0,acc:0,fase:0,hold:0,base:0,vueltas:0,acum:0,nulas:0,rompe:0,t0:null,t1:null,done:false,completo:false,tiempo:null,splits:[],hist:[]});
+    }
+    S.last=Date.now();
     pinta();if(S.t0&&!S.done)corre();
   };
   const prep=()=>{
@@ -254,9 +271,9 @@ function juez(){
   };
   const resumen=()=>{
     const docs=bl(S.p).map((b,k)=>k===S.k?{bloque:S.k,reps:W(),nulas:S.nulas,tiempo:S.tiempo,splits:S.splits,pts:pts(),rompe:S.rompe,completo:S.completo,done:true,juez:S.juez}:D.r.find(x=>x.id===S.p.id+'_'+S.a.id+(k?'_'+k:''))).filter(x=>x&&x.done);
-    const tot=Math.round(docs.reduce((s,r)=>s+ptsR(r,S.p),0)*100)/100;
+    const tot=Math.round(docs.reduce((s,r)=>s+val(r,S.p),0)*100)/100;
     return `<div class="hero">${av(S.a.foto,'lg')}<div><h2>${esc(S.a.nombre)}</h2><p>${esc(S.a.cat||'Sin categoría')} · ${esc(S.p.nombre)}</p><p class="sub">Juez: ${av(((D.j||[]).find(x=>x.id===S.juezUid)||{}).foto)}${esc(S.juez||'—')}${S.fin?' · '+new Date(S.fin).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}):''}</p></div></div>
-    <div class="kp"><div class="big"><b>${tot}</b><span>puntaje total · ${docs.length}/${nb()} bloques</span></div></div>
+    <div class="kp"><div class="big"><b>${tot}</b><span>${uni(S.p)} en total · ${docs.length}/${nb()} bloques</span></div></div>
     ${docs.map(r=>bloqueSum(r,S.p)).join('')}
     <div class="row"><button id="imp" class="sec">Imprimir / PDF</button>${S.k+1<nb()?'<button id="sig">Siguiente bloque</button>':''}<button id="otro">Otro atleta</button></div>`;
   };
@@ -275,13 +292,14 @@ function juez(){
     }
     $('#j').innerHTML=h;
     const q=(s,f)=>{const x=$(s);if(x)x.onclick=f;};
+    const pd=(s,f)=>{const x=$(s);if(x)x.onpointerdown=e=>{e.preventDefault();f();};};
     q('#otro',()=>{S=null;setup();});
     q('#sig',()=>load(S.p,S.a,S.k+1,S.juez));
     q('#imp',()=>print());
     q('#ini',()=>{S.t0=S.last=Date.now();guarda();corre();pinta();});
-    q('#tap',toque);
-    q('#iso',()=>{if(S.t1)isoStop(false);else{S.t1=Date.now();vib(20);pinta();}});
-    q('#nu',()=>{vib(60);beep(200,.12);S.hist.push(snap());S.nulas++;guarda();pinta();});
+    pd('#tap',toque);
+    pd('#iso',()=>{if(S.t1)isoStop(false);else{S.t1=Date.now();vib(20);pinta();}});
+    pd('#nu',()=>{vib(60);beep(200,.12);S.hist.push(snap());S.nulas++;guarda();pinta();});
     q('#ro',()=>{S.hist.push(snap());S.rompe++;S.hold=S.rep;S.fase=1;S.rep=0;S.acc=0;guarda();pinta();});
     q('#sk',()=>{if(!confirm('¿Saltar este ejercicio con lo logrado?'))return;S.hist.push(snap());if(S.t1){S.acc+=Date.now()-S.t1;S.t1=null;}adv(cur());});
     q('#un',()=>{if(S.t1)return;const x=S.hist.pop();if(x){Object.assign(S,x);guarda();pinta();}});
@@ -296,13 +314,12 @@ function atleta(id){
   datos(D=>{const a=D.a.find(x=>x.id===id);if(!a){$('#pf').innerHTML='<p class="sub">Cargando atleta…</p>';return;}
     const gs=D.p.map(p=>({p,rs:D.r.filter(r=>r.atletaId===id&&r.pruebaId===p.id).sort((x,y)=>(x.bloque||0)-(y.bloque||0))})).filter(g=>g.rs.length);
     $('#pf').innerHTML=`<div class="hero">${av(a.foto,'lg')}<div><h2>${esc(a.nombre)}</h2><div class="tags">${[a.cat,a.club,a.lugar,a.edad?a.edad+' años':''].filter(Boolean).map(x=>`<span class="tag lt">${esc(x)}</span>`).join('')}</div></div></div>${a.desc?`<p class="desc">${esc(a.desc)}</p>`:''}
-    <h2>Desempeño</h2>${gs.map(g=>`<h3 class="gt">${esc(g.p.nombre)} · ${Math.round(g.rs.reduce((s,r)=>s+ptsR(r,g.p),0)*100)/100} pts</h3>${g.rs.map(r=>bloqueSum(r,g.p)).join('')}`).join('')||'<p class="sub">Aún no tiene resultados.</p>'}`;});
+    <h2>Desempeño</h2>${gs.map(g=>`<h3 class="gt">${esc(g.p.nombre)} · ${Math.round(g.rs.reduce((s,r)=>s+val(r,g.p),0)*100)/100} ${uni(g.p)}</h3>${g.rs.map(r=>bloqueSum(r,g.p)).join('')}`).join('')||'<p class="sub">Aún no tiene resultados.</p>'}`;});
 }
 function perfil(){
-  app.innerHTML=nav()+`<div class="wrap"><h2>Mi perfil de juez</h2><div id="pv"></div><input id="pn" placeholder="Tu nombre" value="${esc(user.displayName||'')}"><label class="file">${ic('plus')}<span>Elegir foto</span><input id="pi" type="file" accept="image/*"></label><button id="gp">Guardar</button></div>`;
-  let ft='';
-  datos(D=>{const m=D.j.find(x=>x.id===user.uid)||{};if(!ft)ft=m.foto||'';$('#pv').innerHTML=av(ft,'lg');});
-  $('#gp').onclick=async()=>{const n=$('#pn').value.trim();if(!n)return alert('Escribe tu nombre.');const f=$('#pi').files[0];
-    if(f)ft=await foto(f).catch(()=>{alert('No pude leer la foto');return ft;});
-    user.updateProfile({displayName:n});db.collection('jueces').doc(user.uid).set({nombre:n,foto:ft});alert('Guardado');};
+  app.innerHTML=nav()+`<div class="wrap"><h2>Mi perfil de juez</h2><input id="pn" placeholder="Tu nombre" value="${esc(user.displayName||'')}">${fpHTML()}<button id="gp">Guardar</button></div>`;
+  let ini=0;
+  datos(D=>{if(!ini&&D.ok.j){ini=1;fpSet($('.fp'),(D.j.find(x=>x.id===user.uid)||{}).foto||'');}});
+  $('#gp').onclick=()=>{const n=$('#pn').value.trim();if(!n)return alert('Escribe tu nombre.');
+    user.updateProfile({displayName:n});db.collection('jueces').doc(user.uid).set({nombre:n,foto:$('.fp').dataset.v||''});alert('Guardado');};
 }
