@@ -128,3 +128,7 @@ details.ad[open]>summary h2::after{transform:rotate(-135deg)}
 .fp label.file{flex:1;margin:0}
 .fp .qf{width:auto;margin:0}
 label.file.ok{color:#fff;background:var(--g-wine);border:1px solid transparent}
+
+.next{margin:10px 0;padding:11px 14px;color:var(--ink2);font-weight:600;background:#fff;border:1px dashed #c4c8d0;border-radius:14px}
+.lab{margin:8px 0 4px;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+@media print{.hero,.kp .big,.pd.p1{-webkit-print-color-adjust:exact;print-color-adjust:exact}.bk{break-inside:avoid}}
